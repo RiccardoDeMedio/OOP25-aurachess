@@ -9,6 +9,7 @@ public class AuraEngine {
     public int getDepth() {
         return maxDepth;
     }
+    
 
     private int evaluateBoard(Board board) {
         int totalScore = 0;
