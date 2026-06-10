@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Implementation of the chessboard.
+ * Implementation, of the chessboard.
  */
 public final class Board implements ReadOnlyBoard {
 
