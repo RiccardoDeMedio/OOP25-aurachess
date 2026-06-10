@@ -1,7 +1,7 @@
 package scacchi.model.board;
 
 /**
- * Represents a position on the chessboard.
+ * Represent a position on the chessboard.
  *
  * @param x the column (from 0 to 7, where 0 = A and 7 = H)
  * @param y the row (from 0 to 7, where 0 = 1 and 7 = 8)

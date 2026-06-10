@@ -26,7 +26,7 @@ public interface ReadOnlyBoard {
     boolean isEmpty(Position pos);
 
     /**
-     * Returns whoever currently has the shift returns.
+     * Returns whoever currently has the shift.
      *
      * @return whose color is it
      */
