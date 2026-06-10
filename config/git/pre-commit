@@ -1,0 +1,23 @@
+#!/bin/sh
+
+echo "AuraScacchi: Verifica Build pre-commit in corso..."
+
+STASH_NAME="pre-commit-stash-$(date +%s)"
+git stash push --keep-index --include-untracked -m "$STASH_NAME" > /dev/null
+
+# Esegue il check con il tool del prof
+./gradlew build check
+
+# Cattura il risultato del comando precedente
+RESULT=$?
+
+git stash pop --quiet
+
+if [ $RESULT -ne 0 ]; then
+  echo "ERRORE: Il build Gradle è fallito. Commit annullato." >&2
+  echo "Correggi gli errori prima di committare." >&2
+  exit 1
+fi
+
+echo "Build completato con successo. Procedo con il commit."
+exit 0
