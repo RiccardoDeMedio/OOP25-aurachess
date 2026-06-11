@@ -31,4 +31,11 @@ public interface ReadOnlyBoard {
      * @return whose color is it
      */
     char getActiveColor();
+
+    /**
+     * Saving the game board in FEN format.
+     *
+     * @return FEN string to save the current state of the board
+     */
+    String toFEN();
 }
