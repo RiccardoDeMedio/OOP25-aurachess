@@ -11,9 +11,16 @@ import java.util.Optional;
  */
 public final class Board implements ReadOnlyBoard {
 
+    private static final int BOARD_ROW = 7;
+    private static final int BOARD_COLUMN = 8;
+
     private final Map<Position, Piece> state;
 
-    //private char activeColor = 'w';
+    private char activeColor = 'w';         // 'w' for white, 'b' for black
+    private String castlingRights = "KQkq"; // Initial castling rights
+    private String enPassantTarget = "-";   // Target square en passant (e.g. "e3")
+    private int halfmoveClock;          // Counter for the 50-move rule
+    private int fullmoveNumber = 1;         // Current turn number
 
     /**
      * Constructor: Creates an empty board.
@@ -34,7 +41,7 @@ public final class Board implements ReadOnlyBoard {
 
     @Override
     public char getActiveColor() {
-        return 'w'; //Da rimettere activeColor
+        return activeColor;
     }
 
     /**
@@ -59,4 +66,98 @@ public final class Board implements ReadOnlyBoard {
             state.put(to, pieceToMove);
         }
     }
+
+    /**
+     * Converts the current state of the map to a FEN string.
+     *
+     * @return the FEN string representing the chessboard
+     */
+    @Override
+    public String toFEN() {
+        final StringBuilder fenBuilder = new StringBuilder();
+
+        // Position of the pieces in the FEN String Board
+        for (int y = BOARD_ROW; y >= 0; y--) {
+            int emptySquares = 0;
+            for (int x = 0; x < BOARD_COLUMN; x++) {
+                final Position pos = new Position(x, y);
+                final Optional<Piece> pieceOpt = getPieceAt(pos);
+
+                if (pieceOpt.isPresent()) {
+                    if (emptySquares > 0) {
+                        fenBuilder.append(emptySquares);
+                        emptySquares = 0;
+                    }
+                    fenBuilder.append(pieceOpt.get().getFenChar());
+                } else {
+                    emptySquares++;
+                }
+            }
+            if (emptySquares > 0) {
+                fenBuilder.append(emptySquares);
+            }
+            if (y > 0) {
+                fenBuilder.append('/');
+            }
+        }
+
+        // Additional fields (Separated by space)
+        fenBuilder.append(' ').append(activeColor)
+                .append(' ').append(castlingRights)
+                .append(' ').append(enPassantTarget)
+                .append(' ').append(halfmoveClock)
+                .append(' ').append(fullmoveNumber);
+
+        return fenBuilder.toString();
+    }
+
+    /*
+     * SETTER PER LE REGOLE AVANZATE, per Riki
+     */
+
+    /**
+     * Set the color of who should move.
+     *
+     * @param activeColor 'w' for White, 'b' for Black
+     */
+    public void setActiveColor(final char activeColor) {
+        this.activeColor = activeColor;
+    }
+
+    /**
+     * Update castling rights.
+     *
+     * @param castlingRights Example: "KQkq", "Kq", or "-" if no one can castle
+     */
+    public void setCastlingRights(final String castlingRights) {
+        this.castlingRights = castlingRights;
+    }
+
+    /**
+     * Set the target box for the en passant catch.
+     *
+     * @param enPassantTarget Coordinate in algebraic notation (e.g. "e3") or "-"
+     */
+    public void setEnPassantTarget(final String enPassantTarget) {
+        this.enPassantTarget = enPassantTarget;
+    }
+
+    /**
+     * Update the counter for the 50-move rule.
+     *
+     * @param halfmoveClock number of half-moves since the last capture or pawn push
+     */
+    public void setHalfmoveClock(final int halfmoveClock) {
+        this.halfmoveClock = halfmoveClock;
+    }
+
+    /**
+     * Update the current shift number.
+     *
+     * @param fullmoveNumber turn number (incremented after Black's move)
+     */
+    public void setFullmoveNumber(final int fullmoveNumber) {
+        this.fullmoveNumber = fullmoveNumber;
+    }
+
 }
