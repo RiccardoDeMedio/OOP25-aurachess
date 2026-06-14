@@ -1,6 +1,7 @@
 package scacchi.model.board;
 
 import scacchi.model.pieces.Piece;
+import scacchi.model.pieces.PieceFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,7 +12,7 @@ import java.util.Optional;
  */
 public final class Board implements ReadOnlyBoard {
 
-    private static final int BOARD_ROW = 7;
+    private static final int BOARD_ROW = 8;
     private static final int BOARD_COLUMN = 8;
 
     private final Map<Position, Piece> state;
@@ -77,7 +78,7 @@ public final class Board implements ReadOnlyBoard {
         final StringBuilder fenBuilder = new StringBuilder();
 
         // Position of the pieces in the FEN String Board
-        for (int y = BOARD_ROW; y >= 0; y--) {
+        for (int y = BOARD_ROW - 1; y >= 0; y--) {
             int emptySquares = 0;
             for (int x = 0; x < BOARD_COLUMN; x++) {
                 final Position pos = new Position(x, y);
@@ -109,6 +110,82 @@ public final class Board implements ReadOnlyBoard {
                 .append(' ').append(fullmoveNumber);
 
         return fenBuilder.toString();
+    }
+
+    /**
+     * Clears the board and rebuilds it by reading a FEN string.
+     *
+     * @param fen the FEN string to load
+     * @throws IllegalArgumentException if the FEN string is corrupted or invalid
+     */
+    public void loadFromFEN(final String fen) {
+        // Check if the FEN string is null, empty, or contains only whitespaces
+        if (fen == null || fen.isBlank()) {
+            throw new IllegalArgumentException("Impossibile caricare: la stringa FEN è vuota o nulla.");
+        }
+
+        // Divide the entire FEN by space
+        final String[] fenParts = fen.split(" ");
+        if (fenParts.length < 1) {
+            throw new IllegalArgumentException("Stringa FEN non valida.");
+        }
+
+        // Read the block of pieces
+        final String piecesBlock = fenParts[0];
+        final String[] rows = piecesBlock.split("/");
+        if (rows.length != 8) {
+            throw new IllegalArgumentException("Stringa FEN malformata: previste 8 righe, trovate " + rows.length);
+        }
+
+        // Reset Board
+        this.state.clear();
+
+        for (int i = 0; i < BOARD_COLUMN; i++) {
+            final int y = BOARD_ROW - 1 - i;
+            final String rowData = rows[i];
+            int x = 0;
+
+            for (int j = 0; j < rowData.length(); j++) {
+                final char c = rowData.charAt(j);
+
+                if (Character.isDigit(c)) {
+                    x += Character.getNumericValue(c);
+                } else {
+                    try {
+                        final Position pos = new Position(x, y);
+                        final Piece piece = PieceFactory.createPiece(c);
+                        putPiece(pos, piece);
+                        x++;
+                    } catch (final IllegalArgumentException e) {
+                        throw new IllegalArgumentException("Errore coordinata x:" + x + " y:" + y + " - " + e.getMessage(), e);
+                    }
+                }
+            }
+        }
+
+        // Reads additional fields
+        // If the FEN only has the pieces, we set safe default values
+
+        // Whose turn it is to move
+        this.activeColor = fenParts.length > 1 ? fenParts[1].charAt(0) : 'w';
+        // Castling rights
+        this.castlingRights = fenParts.length > 2 ? fenParts[2] : "-";
+        // En passant target square
+        this.enPassantTarget = fenParts.length > 3 ? fenParts[3] : "-";
+
+        final int halfmoveIndex = 4;
+        final int fullmoveIndex = 5;
+
+        try {
+            // The 50-move rule
+            this.halfmoveClock = fenParts.length > halfmoveIndex ? Integer.parseInt(fenParts[halfmoveIndex]) : 0;
+            // Current turn
+            this.fullmoveNumber = fenParts.length > fullmoveIndex ? Integer.parseInt(fenParts[fullmoveIndex]) : 1;
+        } catch (final NumberFormatException e) {
+            // If the final numbers are misspelled, we default to 0 and 1
+            this.halfmoveClock = 0;
+            this.fullmoveNumber = 1;
+        }
     }
 
     /*
