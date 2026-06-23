@@ -6,6 +6,11 @@ import scacchi.model.pieces.PieceFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * Implementation, of the chessboard.
@@ -16,11 +21,12 @@ public final class Board implements ReadOnlyBoard {
     private static final int BOARD_COLUMN = 8;
 
     private final Map<Position, Piece> state;
+    private final Deque<String> history = new ArrayDeque<>();
 
     private char activeColor = 'w';         // 'w' for white, 'b' for black
     private String castlingRights = "KQkq"; // Initial castling rights
     private String enPassantTarget = "-";   // Target square en passant (e.g. "e3")
-    private int halfmoveClock;          // Counter for the 50-move rule
+    private int halfmoveClock;              // Counter for the 50-move rule
     private int fullmoveNumber = 1;         // Current turn number
 
     /**
@@ -62,6 +68,9 @@ public final class Board implements ReadOnlyBoard {
      * @param to the final position
      */
     public void movePiece(final Position from, final Position to) {
+        // Save the current state as a FEN string before moving
+        history.push(this.toFEN());
+
         final Piece pieceToMove = state.remove(from);
         if (pieceToMove != null) {
             state.put(to, pieceToMove);
@@ -186,6 +195,64 @@ public final class Board implements ReadOnlyBoard {
             this.halfmoveClock = 0;
             this.fullmoveNumber = 1;
         }
+    }
+
+    /**
+     * Allows you to go back one move.
+     *
+     * @return true if the rollback was successful, otherwise false
+     */
+    public boolean rollback() {
+        if (history.isEmpty()) {
+            return false;
+        }
+
+        final String previousFEN = history.pop();
+
+        this.loadFromFEN(previousFEN);
+
+        return true;
+    }
+
+    /**
+     * Chronological order for the SaveManager.
+     *
+     * @return the history in chronological order
+     */
+    public List<String> getChronologicalHistory() {
+        final List<String> chronological = new ArrayList<>();
+
+        // The descendingIterator goes from the bottom of the stack (oldest move) to the top (newest move)
+        final Iterator<String> it = history.descendingIterator();
+        while (it.hasNext()) {
+            chronological.add(it.next());
+        }
+
+        // We also add the current state as the last line of the file
+        chronological.add(this.toFEN());
+        return chronological;
+    }
+
+    /**
+     * Rebuilds the board history from the lines read from the .fen file.
+     *
+     * @param savedHistory the chronological order to save in the history of the board
+     */
+    public void loadFullGame(final List<String> savedHistory) {
+        this.history.clear();
+
+        if (savedHistory.isEmpty()) {
+            return;
+        }
+
+        // The last line is the current state of the game, the others go on the rollback stack.
+        for (int i = 0; i < savedHistory.size() - 1; i++) {
+            this.history.push(savedHistory.get(i));
+        }
+
+        // We restore the piece map using the last line of the file
+        final String currentStatus = savedHistory.getLast();
+        this.loadFromFEN(currentStatus);
     }
 
     /*

@@ -4,8 +4,9 @@ import scacchi.model.pieces.PieceFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -104,5 +105,33 @@ class BoardTest {
                 () -> board.loadFromFEN("stringa_sbagliata")
         );
         assertTrue(e.getMessage().contains("malformata"));
+    }
+
+    /**
+     * Test 7: Move Simulation and Full Rollback.
+     */
+    @Test
+    void testMoveAndRollback() {
+        final Position startPos = new Position(0, 0);
+        final Position endPos = new Position(0, 1);
+        board.putPiece(startPos, PieceFactory.createPiece('P'));
+
+        final String fenPrimaDellaMossa = board.toFEN(); // "8/8/8/8/8/8/8/P7 w KQkq - 0 1"
+
+        // Make the move towards A2 (0,1)
+        board.movePiece(startPos, endPos);
+
+        // Check if the piece has moved
+        assertTrue(board.isEmpty(startPos), "La casella di partenza non si è svuotata");
+        assertFalse(board.isEmpty(endPos), "Il pezzo non è arrivato a destinazione");
+
+        // We cancel the move doing a Rollback
+        final boolean rollbackSuccess = board.rollback();
+
+        // Final checks
+        assertTrue(rollbackSuccess, "Il rollback doveva restituire true");
+        assertEquals(fenPrimaDellaMossa, board.toFEN(), "Il FEN dopo il rollback non coincide con quello originale");
+        assertFalse(board.isEmpty(startPos), "Il pezzo non è tornato in A1");
+        assertTrue(board.isEmpty(endPos), "Il pezzo non è sparito da A2");
     }
 }
