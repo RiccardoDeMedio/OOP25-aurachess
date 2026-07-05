@@ -197,7 +197,20 @@ public class AuraEngine {
                     break;
                 }
             }
-            return maxEval
+            return maxEval;
         }
+        else {
+            int minEval = Integer.MAX_VALUE; //Local variable
+            for (Move move : allPossibleMoves) {
+                Board newBoard = board.makeMove(move);
+                int eval = minmaxing_alfa_beta_pruning(newBoard, depht, isMaximizingPlayer = true);
+                minEval = Math.min(eval, minEval);
+                beta = Math.min(alfa, minEval);
+                if (beta > alfa) {
+                    break;
+                }
+            }
+        }
+        return minEval;
     }
 }
