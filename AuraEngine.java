@@ -1,3 +1,6 @@
+import java.security.spec.InvalidParameterSpecException;
+import java.util.List;
+
 public class AuraEngine {
     private final int maxDepth;
     private final int squares = 64;
@@ -177,7 +180,24 @@ public class AuraEngine {
     }
 
     private int minmaxing_alfa_beta_pruning(Board board, int depht, boolean isMaximizingPlayer) {
-        int alfa; 
-        int beta;
+        int alfa = Integer.MIN_VALUE; //Global variables
+        int beta = Integer.MAX_VALUE;
+        if (board.isGameOver() || depht < 1) {
+            throw new InvalidParameterSpecException("Error regarding the board");
+        }
+        List<Move> allPossibleMoves = board.getAllPossibleMoves(); 
+        if (isMaximizingPlayer) {
+            int maxEval = Integer.MIN_VALUE; //Local variable
+            for (Move move : allPossibleMoves) {
+                Board newBoard = board.makeMove(move);
+                int eval = minmaxing_alfa_beta_pruning(newBoard, depht, isMaximizingPlayer = false);
+                maxEval = Math.max(eval, maxEval);
+                alfa = Math.max(alfa, maxEval);
+                if (alfa > beta) {
+                    break;
+                }
+            }
+            return maxEval
+        }
     }
 }
