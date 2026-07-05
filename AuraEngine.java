@@ -175,4 +175,9 @@ public class AuraEngine {
         }
         return totalScore;
     }
+
+    private int minmaxing_alfa_beta_pruning(Board board, int depht, boolean isMaximizingPlayer) {
+        int alfa; 
+        int beta;
+    }
 }
