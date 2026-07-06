@@ -169,13 +169,13 @@ public class AuraEngine {
                 }
                 totalScore = totalScore + pieceValue * piece.getColor(); // if the piece is white (1), we add the value, if it's black (-1), we subtract the value.
             }
-            if (board.isBlackinCheck()) {
+        }
+        if (board.isBlackinCheck()) {
                 totalScore = totalScore + 50; // If black is in check, we subtract 50 points from the score.
             }
-            else if (board.isWhiteinCheck()) {
+        else if (board.isWhiteinCheck()) {
                 totalScore = totalScore - 50; // If white is in check, we add 50 points to the score.
             }
-        }
         return totalScore;
     }
 
