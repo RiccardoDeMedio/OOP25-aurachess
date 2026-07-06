@@ -213,4 +213,16 @@ public class AuraEngine {
         }
         return minEval;
     }
+
+    public int findBestMove(board Board, boolean isWhite) {
+        int bestScore = 0;
+        if (isWhite) {
+            bestScore = Integer.MIN_VALUE; //maximazing player
+        }
+        else {
+            bestScore = Integer.MAX_VALUE;
+        }
+        Move bestMove = null;
+        List<Move> = board.getAllPossibleMoves();
+    }
 }
