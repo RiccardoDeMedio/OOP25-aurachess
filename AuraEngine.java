@@ -179,21 +179,19 @@ public class AuraEngine {
         return totalScore;
     }
 
-    private int minmaxing_alfa_beta_pruning(Board board, int depht, boolean isMaximizingPlayer) {
-        int alfa = Integer.MIN_VALUE; //Global variables
-        int beta = Integer.MAX_VALUE;
+    private int minmaxing_alfa_beta_pruning(Board board, int depht, int alfa, int beta, boolean isMaximizingPlayer) {
         if (board.isGameOver() || depht < 1) {
-            throw new InvalidParameterSpecException("Error regarding the board");
+            return evaluateBoard(board);
         }
         List<Move> allPossibleMoves = board.getAllPossibleMoves(); 
         if (isMaximizingPlayer) {
             int maxEval = Integer.MIN_VALUE; //Local variable
             for (Move move : allPossibleMoves) {
                 Board newBoard = board.makeMove(move);
-                int eval = minmaxing_alfa_beta_pruning(newBoard, depht-1, !isMaximizingPlayer);
+                int eval = minmaxing_alfa_beta_pruning(newBoard, depht-1, alfa, beta, !isMaximizingPlayer);
                 maxEval = Math.max(eval, maxEval);
-                alfa = Math.max(alfa, maxEval);
-                if (alfa > beta) {
+                alfa = Math.max(alfa, eval);
+                if (beta <= alfa) {
                     break;
                 }
             }
@@ -203,10 +201,10 @@ public class AuraEngine {
             int minEval = Integer.MAX_VALUE; //Local variable
             for (Move move : allPossibleMoves) {
                 Board newBoard = board.makeMove(move);
-                int eval = minmaxing_alfa_beta_pruning(newBoard, depht-1, !isMaximizingPlayer);
+                int eval = minmaxing_alfa_beta_pruning(newBoard, depht-1, alfa, beta, !isMaximizingPlayer);
                 minEval = Math.min(eval, minEval);
-                beta = Math.min(alfa, minEval);
-                if (beta > alfa) {
+                beta = Math.min(beta, eval);
+                if (beta <= alfa) {
                     break;
                 }
             }
@@ -227,7 +225,7 @@ public class AuraEngine {
 
         for (Move move: allPossibleMoves) {
             Board newBoard = board.makeMove(move);
-            int boardScore = minmaxing_alfa_beta_pruning(newBoard, maxDepth, isWhite);
+            int boardScore = minmaxing_alfa_beta_pruning(newBoard, maxDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, isWhite);
             if (isWhite && boardScore > bestScore) {
                 bestScore = boardScore;
                 bestMove = move;
@@ -237,7 +235,6 @@ public class AuraEngine {
                 bestMove = move;
             }
         }
-
         return bestMove;
     }
 }
