@@ -1,6 +1,10 @@
-import java.security.spec.InvalidParameterSpecException;
-import java.util.List;
+package scacchi.model.ai;
 
+import java.security.spec.InvalidParameterSpecException;
+import java.util.LinkedList;
+import java.util.List;
+import scacchi.model.board.Board;
+import scacchi.model.board.Position;
 public class AuraEngine {
     private final int maxDepth;
     private final int squares = 64;
@@ -44,7 +48,7 @@ public class AuraEngine {
             -30,   5,  10,  15,   15,  10,  5, -30,
             -40, -20,   0,   5,    5,  0, -20, -40,
             -50, -40, -30, -30,  -30, -30,-40, -50
-        }
+        } ,
         { // White Bishop
             -30,    -10,    -10,    -10,    -10,    -10,    -10,    -30,
             -10,    0,      0 ,       0,    0,        0,      0,    -10,
@@ -154,6 +158,15 @@ public class AuraEngine {
     public int getDepth() {
         return maxDepth;
     }
+    private List<Position> getAllPosition() {
+        List<Position> allPosition = new LinkedList<>();
+        for (int x = 0; x < 8; x++) {
+            for (int y = 0; y < 8; y++) {
+                allPosition.add(new Position(x, y));
+            }
+        }
+        return allPosition;
+    }
 
     private int evaluateBoard(Board board) {
         int totalScore = 0;
@@ -180,7 +193,7 @@ public class AuraEngine {
     }
 
     private int minmaxing_alfa_beta_pruning(Board board, int depht, int alfa, int beta, boolean isMaximizingPlayer) {
-        if (board.isGameOver() || depht < 1) {
+        if (board.isCheckmate() || depht < 1) {
             return evaluateBoard(board);
         }
         List<Move> allPossibleMoves = board.getAllPossibleMoves(); 
