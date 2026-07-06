@@ -190,7 +190,7 @@ public class AuraEngine {
             int maxEval = Integer.MIN_VALUE; //Local variable
             for (Move move : allPossibleMoves) {
                 Board newBoard = board.makeMove(move);
-                int eval = minmaxing_alfa_beta_pruning(newBoard, depht, isMaximizingPlayer = false);
+                int eval = minmaxing_alfa_beta_pruning(newBoard, depht-1, !isMaximizingPlayer);
                 maxEval = Math.max(eval, maxEval);
                 alfa = Math.max(alfa, maxEval);
                 if (alfa > beta) {
@@ -203,7 +203,7 @@ public class AuraEngine {
             int minEval = Integer.MAX_VALUE; //Local variable
             for (Move move : allPossibleMoves) {
                 Board newBoard = board.makeMove(move);
-                int eval = minmaxing_alfa_beta_pruning(newBoard, depht, isMaximizingPlayer = true);
+                int eval = minmaxing_alfa_beta_pruning(newBoard, depht-1, !isMaximizingPlayer);
                 minEval = Math.min(eval, minEval);
                 beta = Math.min(alfa, minEval);
                 if (beta > alfa) {
@@ -214,7 +214,7 @@ public class AuraEngine {
         return minEval;
     }
 
-    public int findBestMove(board Board, boolean isWhite) {
+    public int findBestMove(Board board, boolean isWhite) {
         int bestScore = 0;
         if (isWhite) {
             bestScore = Integer.MIN_VALUE; //maximazing player
@@ -223,6 +223,21 @@ public class AuraEngine {
             bestScore = Integer.MAX_VALUE;
         }
         Move bestMove = null;
-        List<Move> = board.getAllPossibleMoves();
+        List<Move> allPossibleMoves = board.getAllPossibleMoves();
+
+        for (Move move: allPossibleMoves) {
+            Board newBoard = board.makeMove(move);
+            int boardScore = minmaxing_alfa_beta_pruning(newBoard, maxDepth, isWhite);
+            if (isWhite && boardScore > bestScore) {
+                bestScore = boardScore;
+                bestMove = move;
+            }
+            else if ((!isWhite) && boardScore < bestScore) {
+                bestScore = boardScore;
+                bestMove = move;
+            }
+        }
+
+        return bestMove;
     }
 }
