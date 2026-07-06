@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
+import scacchi.model.pieces.Piece;
 public class AuraEngine {
     private final int maxDepth;
     private final int squares = 64;
@@ -167,18 +168,34 @@ public class AuraEngine {
         }
         return allPosition;
     }
+    private List<Piece> getAllPieces(Board board) {
+        List<Piece> allPieces = new LinkedList<>();
+        List<Position> allPosition = getAllPosition();
+        for (Position position : allPosition) {
+            board.getPieceAt(position).ifPresent(piece -> {
+                allPieces.add(piece);
+            });
+        }
+        return allPieces;
+    }
+
+    private int tableConversion(Position position) {
+        int index = 0;
+        index = (position.y() * 8 ) + position.x();
+        return index;
+    }
 
     private int evaluateBoard(Board board) {
         int totalScore = 0;
-        for (int i = 0; i < squares; i++) {
-            Piece piece = board.getPiece(i);
+        List<Piece> allPieces = getAllPieces(board);
+        for (Piece piece : allPieces){
             int pieceValue = 0;
             if (piece != null) {
                 if (piece.getType() == 11 || piece.getType() == 12 && board.isEndgame()) { // If the piece is a king, and the game is near the end, we use the modified values.
-                    pieceValue = piece.getValue() + pieceTable[piece.getType() + endTableSpots][i];
+                    pieceValue = piece.getValue() + pieceTable[piece.getType() + endTableSpots][tableConversion(piece.getPosition())];
                 }
                 else {
-                    pieceValue = piece.getValue() + pieceTable[piece.getType()][i]; // Otherwise, we use the normal values.
+                    pieceValue = piece.getValue() + pieceTable[piece.getType()][tableConversion(piece.getPosition())]; // Otherwise, we use the normal values.
                 }
                 totalScore = totalScore + pieceValue * piece.getColor(); // if the piece is white (1), we add the value, if it's black (-1), we subtract the value.
             }
