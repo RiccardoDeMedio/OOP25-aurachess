@@ -8,7 +8,6 @@ import scacchi.model.board.Position;
 import scacchi.model.pieces.Piece;
 public class AuraEngine {
     private final int maxDepth;
-    private final int squares = 64;
     private final int pieceTable[][] = { // To assign a value to each piece for each square (As 21/05/2026, most of the values are to be updated and corrected) 
         { // White Pawn
             0,   0,   0,   0,   0,   0,   0,   0,   // 8 - Impossible for pawns
@@ -188,7 +187,7 @@ public class AuraEngine {
     private int evaluateBoard(Board board) {
         int totalScore = 0;
         List<Piece> allPieces = getAllPieces(board);
-        for (Piece piece : allPieces){
+        for (Piece piece : allPieces) {
             int pieceValue = 0;
             if (piece != null) {
                 if (piece.getType() == 11 || piece.getType() == 12 && board.isEndgame()) { // If the piece is a king, and the game is near the end, we use the modified values.
