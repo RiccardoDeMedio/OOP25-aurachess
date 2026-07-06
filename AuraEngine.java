@@ -210,8 +210,8 @@ public class AuraEngine {
                     break;
                 }
             }
+            return minEval;
         }
-        return minEval;
     }
 
     public int findBestMove(Board board, boolean isWhite) {
