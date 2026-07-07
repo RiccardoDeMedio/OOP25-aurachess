@@ -28,10 +28,8 @@ public final class PieceFactory {
                 return new Knight(color);
             case 'q': 
                 return new Queen(color);
-                /*
             case 'k': 
                 return new King(color);
-                */
             default: throw new IllegalArgumentException("Carattere FEN sconosciuto: " + fenChar);
         }
     }
