@@ -266,7 +266,7 @@ public class AuraEngine {
         }
         return bestMove;
     }
-    public int moveEvaluation(Board board, Move move, boolean isWhite) {
+    private int moveEvaluation(Board board, Move move, boolean isWhite) {
         Board newBoard = board.makeMove(move);
         Move bestMove = findBestMove(board, isWhite);
         Board bestBoard = board.makeMove(bestMove);
@@ -283,5 +283,5 @@ public class AuraEngine {
         }
         loss = Math.max(loss, minimum); 
     }
-
+    public 
 }
