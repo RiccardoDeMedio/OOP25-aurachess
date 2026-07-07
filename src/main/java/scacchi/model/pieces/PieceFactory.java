@@ -26,9 +26,9 @@ public final class PieceFactory {
                 return new Bishop(color);
             case 'n': 
                 return new Knight(color);
-                /*
             case 'q': 
                 return new Queen(color);
+                /*
             case 'k': 
                 return new King(color);
                 */
