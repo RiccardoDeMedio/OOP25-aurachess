@@ -1,0 +1,265 @@
+package scacchi.view;
+
+import scacchi.model.board.Position;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JButton;
+import javax.imageio.ImageIO;
+import java.awt.GridLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Toolkit;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.RenderingHints;
+import java.io.IOException;
+import java.io.Serial;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
+import javax.swing.WindowConstants;
+
+/**
+ * Implementazione dell'interfaccia grafica della scacchiera.
+ */
+public final class ChessViewImpl implements ChessView {
+
+    private static final Logger LOGGER = Logger.getLogger(ChessViewImpl.class.getName());
+
+    private static final int BOARD_SIZE = 8;
+    private static final float SCREEN_PERCENTAGE = 0.50F;
+
+    // Constants for colors
+    private final Color lightColor = Color.decode("#eeeed2");
+    private final Color darkColor = Color.decode("#769656");
+    private final Color highlightColor = Color.decode("#f6f669");
+
+    private final Map<Position, ChessSquare> cells = new HashMap<>();
+    private transient Consumer<Position> clickListener;
+    private final Map<Character, Image> imageCache = new HashMap<>();
+
+    private final JFrame frame;
+
+    /**
+     * Costruttore: inizializza le impostazioni della finestra e disegna la scacchiera.
+     */
+    public ChessViewImpl() {
+        frame = new JFrame("AuraChess");
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+        final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        final int windowSize = (int) (screenSize.height * SCREEN_PERCENTAGE);
+
+        frame.setSize(windowSize, windowSize);
+        // Impostato a null per far comparire l'immagine al centro
+        frame.setLocationRelativeTo(null);
+
+        final int minSize = windowSize / 2;
+        frame.setMinimumSize(new Dimension(minSize, minSize));
+
+        final JPanel boardPanel = new JPanel();
+        boardPanel.setLayout(new GridLayout(BOARD_SIZE, BOARD_SIZE));
+
+        initializeBoard(boardPanel);
+        frame.add(boardPanel);
+
+        frame.setVisible(true);
+    }
+
+    private void initializeBoard(final JPanel boardPanel) {
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
+
+                // Impostiamo il colore base di questa casella
+                final Color baseColor = ((row + col) % 2 == 0) ? lightColor : darkColor;
+
+                // Passiamo il colore base al costruttore del nostro bottone custom
+                final ChessSquare square = new ChessSquare(baseColor);
+
+                final Position logicalPos = new Position(col, BOARD_SIZE - 1 - row);
+                cells.put(logicalPos, square);
+
+                square.addActionListener(e -> {
+                    if (clickListener != null) {
+                        clickListener.accept(logicalPos);
+                    }
+                });
+
+                boardPanel.add(square);
+            }
+        }
+    }
+
+    @Override
+    public void setSquareClickListener(final Consumer<Position> listener) {
+        this.clickListener = listener;
+    }
+
+    @Override
+    public void drawPiece(final Position pos, final char fenChar) {
+        final ChessSquare btn = cells.get(pos);
+        if (btn != null) {
+            btn.setPieceImage(getImageForPiece(fenChar));
+        }
+    }
+
+    @Override
+    public void clearSquare(final Position pos) {
+        final ChessSquare btn = cells.get(pos);
+        if (btn != null) {
+            btn.setPieceImage(null);
+        }
+    }
+
+    @Override
+    public void highlightSquare(final Position pos) {
+        final ChessSquare btn = cells.get(pos);
+        if (btn != null) {
+            btn.setBackground(highlightColor);
+        }
+    }
+
+    @Override
+    public void resetBackground(final Position pos) {
+        final ChessSquare btn = cells.get(pos);
+        if (btn != null) {
+            btn.resetToDefaultColor();
+        }
+    }
+
+    /**
+     * Recupera l'immagine del pezzo o dalla cache o dal disco.
+     *
+     * @param fenChar il carattere FEN del pezzo
+     * @return l'immagine del pezzo corrispondente
+     */
+    private Image getImageForPiece(final char fenChar) {
+        if (imageCache.containsKey(fenChar)) {
+            return imageCache.get(fenChar);
+        }
+
+        final String colorPrefix = Character.isUpperCase(fenChar) ? "White" : "Black";
+        final String pieceName = switch (Character.toLowerCase(fenChar)) {
+            case 'p' -> "Pawn";
+            case 'r' -> "Rook";
+            case 'n' -> "Knight";
+            case 'b' -> "Bishop";
+            case 'q' -> "Queen";
+            case 'k' -> "King";
+            default -> throw new IllegalArgumentException("Carattere FEN sconosciuto: " + fenChar);
+        };
+
+        final String imagePath = "/assets/" + colorPrefix + "_" + pieceName + ".png";
+        final URL imageUrl = getClass().getResource(imagePath);
+
+        if (imageUrl == null) {
+            LOGGER.severe("L'immagine non viene trovata in: " + imagePath);
+            return null;
+        }
+
+        try {
+            // ImageIO.read è SINCRONO, assicura che l'immagine sia caricata subito
+            final Image img = ImageIO.read(imageUrl);
+            imageCache.put(fenChar, img);
+            return img;
+        } catch (final IOException e) {
+            LOGGER.severe("Errore durante la lettura dell'immagine: " + imagePath + " - " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Test MOMENTANEO per controllare che tutto funzioni, DA CANCELLARE POI.
+     *
+     * @param args argomenti passati da riga di comando
+     */
+    public static void main(final String[] args) {
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            final ChessView view = new ChessViewImpl();
+
+            final String whiteConfiguration = "RNBQKBNR";
+            final String blackConfiguration = "rnbqkbnr";
+            final int whitePawnRow = 1;
+            final int blackPawnRow = 6;
+            final int whitePieceRow = 0;
+            final int blackPieceRow = 7;
+
+            for (int i = 0; i < BOARD_SIZE; i++) {
+                view.drawPiece(new Position(i, whitePawnRow), 'P');
+                view.drawPiece(new Position(i, blackPawnRow), 'p');
+
+                view.drawPiece(new Position(i, whitePieceRow), whiteConfiguration.charAt(i));
+                view.drawPiece(new Position(i, blackPieceRow), blackConfiguration.charAt(i));
+            }
+
+            view.setSquareClickListener(pos -> {
+                LOGGER.info("L'utente ha cliccato: x=" + pos.x() + ", y=" + pos.y());
+                view.highlightSquare(pos);
+
+                // Dopo 1 secondo pulisce il pezzo E ripristina lo sfondo
+                final javax.swing.Timer timer = new javax.swing.Timer(1000, e -> {
+                    view.clearSquare(pos);
+                    view.resetBackground(pos);
+                });
+                timer.setRepeats(false);
+                timer.start();
+            });
+        });
+    }
+
+    /**
+     * Un JButton custom capace di renderizzare la propria immagine e ricordare il suo colore originale.
+     */
+    private static final class ChessSquare extends JButton {
+        @Serial
+        private static final long serialVersionUID = 1L;
+        private static final int PADDING = 6;
+
+        // Memoria del colore originale
+        private final Color defaultBg;
+        private transient Image pieceImage;
+
+        ChessSquare(final Color defaultBg) {
+            this.defaultBg = defaultBg;
+            this.setBackground(defaultBg);
+            this.setBorderPainted(false);   // Nasconde i bordi 3d del bottone
+            this.setFocusPainted(false);    // Nasconde il tratteggio quando si clicca
+            this.setOpaque(true);           // Obbliga Java a colorare tutto lo sfondo
+        }
+
+        void setPieceImage(final Image image) {
+            // Aggiorno il dato in memoria
+            this.pieceImage = image;
+            // Chiama paintComponent per aggiornare lo schermo
+            this.repaint();
+        }
+
+        void resetToDefaultColor() {
+            this.setBackground(defaultBg);
+        }
+
+        @Override
+        protected void paintComponent(final Graphics g) {
+            // Richiama il metodo originale del JButton per colorare lo sfondo
+            super.paintComponent(g);
+
+            if (pieceImage != null) {
+                final Graphics2D g2 = (Graphics2D) g.create();
+                // Anti-Aliasing implementato per smussare i bordi
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // Interpolazione Bilineare implementata per mantenere l'immagine nitida
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+                final int width = getWidth() - (PADDING * 2);
+                final int height = getHeight() - (PADDING * 2);
+
+                g2.drawImage(pieceImage, PADDING, PADDING, width, height, this);
+                g2.dispose();
+            }
+        }
+    }
+}
