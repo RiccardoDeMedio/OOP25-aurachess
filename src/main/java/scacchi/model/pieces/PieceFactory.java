@@ -22,11 +22,11 @@ public final class PieceFactory {
                 return new Pawn(color);
             case 'r': 
                 return new Rook(color);
+            case 'b': 
+                return new Bishop(color);
                 /*
             case 'n': 
                 return new Knight(color);
-            case 'b': 
-                return new Bishop(color);
             case 'q': 
                 return new Queen(color);
             case 'k': 
