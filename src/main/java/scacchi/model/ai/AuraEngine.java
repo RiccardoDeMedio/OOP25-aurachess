@@ -266,4 +266,22 @@ public class AuraEngine {
         }
         return bestMove;
     }
+    public int moveEvaluation(Board board, Move move, boolean isWhite) {
+        Board newBoard = board.makeMove(move);
+        Move bestMove = findBestMove(board, isWhite);
+        Board bestBoard = board.makeMove(bestMove);
+        bestBoard.make(bestMove);
+        int evaluationPlayerMove = evaluateBoard(newBoard);
+        int evaluationBestMove = evaluateBoard(bestBoard);
+        int loss = 0;
+        int minimum = 0;
+        if (isWhite) {
+            loss = evaluationBestMove - evaluationPlayerMove;
+        }
+        else {
+            loss = evaluationPlayerMove - evaluationBestMove;
+        }
+        loss = Math.max(loss, minimum); 
+    }
+
 }
