@@ -285,7 +285,7 @@ public class AuraEngine {
     }
     public int calculatePrecision(Board board, Move move, boolean isWhite) {
         int loss = calculateLoss(board, move, isWhite);
-        int precision = Math.min(0, (100 - loss));
+        int precision = Math.max(0, (100 - loss));
         return precision;
     }
 }
