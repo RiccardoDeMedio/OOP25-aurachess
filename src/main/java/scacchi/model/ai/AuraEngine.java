@@ -266,7 +266,7 @@ public class AuraEngine {
         }
         return bestMove;
     }
-    private int moveEvaluation(Board board, Move move, boolean isWhite) {
+    private int calculateLoss(Board board, Move move, boolean isWhite) { //Centipawn calculated as Chess.com
         Board newBoard = board.makeMove(move);
         Move bestMove = findBestMove(board, isWhite);
         Board bestBoard = board.makeMove(bestMove);
@@ -276,12 +276,16 @@ public class AuraEngine {
         int loss = 0;
         int minimum = 0;
         if (isWhite) {
-            loss = evaluationBestMove - evaluationPlayerMove;
+            loss = evaluationBestMove - evaluationPlayerMove; 
         }
         else {
             loss = evaluationPlayerMove - evaluationBestMove;
         }
         loss = Math.max(loss, minimum); 
     }
-    public 
+    public int calculatePrecision(Board board, Move move, boolean isWhite) {
+        int loss = calculateLoss(board, move, isWhite);
+        int precision = Math.min(0, (100 - loss));
+        return precision;
+    }
 }
