@@ -18,20 +18,19 @@ public final class PieceFactory {
         final char type = Character.toLowerCase(fenChar);
 
         switch (type) {
-            case 'p': 
+            case 'p':
                 return new Pawn(color);
-            case 'r': 
+            case 'r':
                 return new Rook(color);
-            case 'b': 
+            case 'b':
                 return new Bishop(color);
-            case 'n': 
+            case 'n':
                 return new Knight(color);
-            case 'q': 
+            case 'q':
                 return new Queen(color);
-            case 'k': 
+            case 'k':
                 return new King(color);
             default: throw new IllegalArgumentException("Carattere FEN sconosciuto: " + fenChar);
         }
     }
 }
-

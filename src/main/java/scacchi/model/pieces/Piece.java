@@ -3,9 +3,11 @@ package scacchi.model.pieces;
 import java.util.Set;
 import scacchi.model.board.Position;
 import scacchi.model.board.ReadOnlyBoard;
+
 /**
  * Interface, representing a generic chess piece.
  */
+
 public interface Piece {
 
     /**
@@ -16,14 +18,14 @@ public interface Piece {
      */
     char getFenChar();
 
-        /**
+    /**
      * Returns the color of the piece.
      *
      * @return '1' for white, '-1' for black
      */
     int getColor();
 
-        /**
+    /**
      * Calculates all valid moves for this piece given its current position and the board state.
      *
      * @param currentPosition the current position of the piece
@@ -32,4 +34,3 @@ public interface Piece {
      */
     Set<Position> getValidMoves(Position currentPosition, ReadOnlyBoard board);
 }
-

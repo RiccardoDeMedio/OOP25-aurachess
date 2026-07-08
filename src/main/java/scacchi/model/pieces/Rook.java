@@ -6,10 +6,18 @@ import java.util.Optional;
 import scacchi.model.board.Position;
 import scacchi.model.board.ReadOnlyBoard;
 
-public class Rook implements Piece {
+/**
+ * Represents the piece.
+ */
+public final class Rook implements Piece {
 
     private final int color; // 1 for white, -1 for black
 
+    /**
+     * Constructor.
+     *
+     * @param color 1 for white, -1 for black
+     */
     public Rook(final int color) {
         if (color != 1 && color != -1) {
             throw new IllegalArgumentException("Color must be 1 (white) or -1 (black)");
@@ -21,7 +29,7 @@ public class Rook implements Piece {
     public char getFenChar() {
         return this.color == 1 ? 'R' : 'r';
     }
-    
+
     @Override
     public int getColor() {
         return this.color;
@@ -38,19 +46,21 @@ public class Rook implements Piece {
         };
 
         // It iterates through each sub-array of directions (dx, dy) and calculates the valid positions in that direction
-        for (int [] dir : directions) {
-            int dx = dir[0];
-            int dy = dir[1];
+        for (final int[] dir : directions) {
+            final int dx = dir[0];
+            final int dy = dir[1];
             int x = currentPosition.x();
             int y = currentPosition.y();
 
             while (true) {
                 x += dx;
                 y += dy;
-                if (x < 0 || x >= 8 || y < 0 || y >= 8) break;
+                if (x < 0 || x >= 8 || y < 0 || y >= 8) {
+                    break;
+                }
 
-                Position newPos = new Position(x, y);
-                Optional<Piece> pieceAtNewPos = board.getPieceAt(newPos);
+                final Position newPos = new Position(x, y);
+                final Optional<Piece> pieceAtNewPos = board.getPieceAt(newPos);
 
                 if (pieceAtNewPos.isPresent()) {
                     if (pieceAtNewPos.get().getColor() != this.color) {
@@ -65,6 +75,4 @@ public class Rook implements Piece {
 
         return validMoves;
     }
-    
 }
-

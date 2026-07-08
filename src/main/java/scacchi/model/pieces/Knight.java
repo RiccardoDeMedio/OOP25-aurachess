@@ -6,10 +6,18 @@ import java.util.Optional;
 import scacchi.model.board.Position;
 import scacchi.model.board.ReadOnlyBoard;
 
-public class Knight implements Piece {
+/**
+ * Represents the piece.
+ */
+public final class Knight implements Piece {
 
     private final int color; // 1 for white, -1 for black
 
+    /**
+     * Constructor.
+     *
+     * @param color 1 for white, -1 for black
+     */
     public Knight(final int color) {
         if (color != 1 && color != -1) {
             throw new IllegalArgumentException("Color must be 1 (white) or -1 (black)");
@@ -21,7 +29,7 @@ public class Knight implements Piece {
     public char getFenChar() {
         return this.color == 1 ? 'N' : 'n';
     }
-    
+
     @Override
     public int getColor() {
         return this.color;
@@ -38,17 +46,17 @@ public class Knight implements Piece {
             {1, 2},   // Right 2, Up 1
             {1, -2},  // Right 2, Down 1
             {-1, 2},  // Left 2, Up 1
-            {-1, -2}  // Left 2, Down 1
+            {-1, -2},  // Left 2, Down 1
         };
 
         // It iterates through each sub-array of directions (dx, dy) and calculates the valid positions in that direction
-        for (int [] dir : directions) {
-            int x = currentPosition.x() + dir[0];
-            int y = currentPosition.y() + dir[1];
+        for (final int[] dir : directions) {
+            final int x = currentPosition.x() + dir[0];
+            final int y = currentPosition.y() + dir[1];
 
             if (x >= 0 && x < 8 && y >= 0 && y < 8) {
-                Position newPos = new Position(x, y);
-                Optional<Piece> pieceAtNewPos = board.getPieceAt(newPos);
+                final Position newPos = new Position(x, y);
+                final Optional<Piece> pieceAtNewPos = board.getPieceAt(newPos);
 
                 if (pieceAtNewPos.isPresent()) {
                     if (pieceAtNewPos.get().getColor() != this.color) {
@@ -61,6 +69,4 @@ public class Knight implements Piece {
         }
         return validMoves;
     }
-
 }
-
