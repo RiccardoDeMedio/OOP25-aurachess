@@ -14,46 +14,22 @@ public final class PieceFactory {
      * @return a new Piece object
      */
     public static Piece createPiece(final char fenChar) {
-        final boolean isWhite = Character.isUpperCase(fenChar);
+        final int color = Character.isUpperCase(fenChar) ? 1 : -1;
         final char type = Character.toLowerCase(fenChar);
 
         switch (type) {
-            case 'p': return new Piece() {
-                    @Override
-                    public char getFenChar() {
-                        return isWhite ? 'P' : 'p';
-                    } //
-                };
-            case 'r': return new Piece() {
-                @Override
-                public char getFenChar() {
-                    return isWhite ? 'R' : 'r';
-                }
-            };
-            case 'n': return new Piece() {
-                @Override
-                public char getFenChar() {
-                    return isWhite ? 'N' : 'n';
-                }
-            };
-            case 'b': return new Piece() {
-                @Override
-                public char getFenChar() {
-                    return isWhite ? 'B' : 'b';
-                }
-            };
-            case 'q': return new Piece() {
-                @Override
-                public char getFenChar() {
-                    return isWhite ? 'Q' : 'q';
-                }
-            };
-            case 'k': return new Piece() {
-                @Override
-                public char getFenChar() {
-                    return isWhite ? 'K' : 'k';
-                }
-            };
+            case 'p':
+                return new Pawn(color);
+            case 'r':
+                return new Rook(color);
+            case 'b':
+                return new Bishop(color);
+            case 'n':
+                return new Knight(color);
+            case 'q':
+                return new Queen(color);
+            case 'k':
+                return new King(color);
             default: throw new IllegalArgumentException("Carattere FEN sconosciuto: " + fenChar);
         }
     }
