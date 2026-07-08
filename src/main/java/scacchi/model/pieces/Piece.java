@@ -32,3 +32,4 @@ public interface Piece {
      */
     Set<Position> getValidMoves(Position currentPosition, ReadOnlyBoard board);
 }
+
