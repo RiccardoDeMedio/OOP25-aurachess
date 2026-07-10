@@ -54,7 +54,7 @@ public final class Knight implements Piece {
             final int x = currentPosition.x() + dir[0];
             final int y = currentPosition.y() + dir[1];
 
-            if (x >= 0 && x < 8 && y >= 0 && y < 8) {
+            if (Position.isValid(x, y)) {
                 final Position newPos = new Position(x, y);
                 final Optional<Piece> pieceAtNewPos = board.getPieceAt(newPos);
 
