@@ -22,10 +22,7 @@ public final class GameRules {
     private static final int WHITE_PROMOTION_ROW = 7;
     private static final int BLACK_PROMOTION_ROW = 0;
 
-    private static final int FEN_CASTLING_INDEX = 2;
     private static final int FEN_EN_PASSANT_INDEX = 3;
-    private static final int FEN_HALFMOVE_INDEX = 4;
-    private static final int FEN_FULLMOVE_INDEX = 5;
 
     private static final int FIFTY_MOVE_HALFMOVE_LIMIT = 100;
     private static final int REPETITION_THRESHOLD = 3;
@@ -51,16 +48,10 @@ public final class GameRules {
         {0, 1}, {0, -1}, {1, 0}, {-1, 0}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1},
     };
 
-    private GameRules() { }
-
     /**
-     * Genera i campi della stringa FEN.
-     *
-     * @param board la board attuale
-     * @return un array di stringhe rappresentante i campi del FEN
+     * Costruttore privato per nascondere il costruttore di default.
      */
-    private static String[] fenFields(final ReadOnlyBoard board) {
-        return board.toFEN().split(" ");
+    private GameRules() {
     }
 
     /**
@@ -70,8 +61,7 @@ public final class GameRules {
      * @return la stringa che rappresenta i diritti
      */
     public static String getCastlingRights(final ReadOnlyBoard board) {
-        final String[] fields = fenFields(board);
-        return fields.length > FEN_CASTLING_INDEX ? fields[FEN_CASTLING_INDEX] : "-";
+        return board.getCastlingRights();
     }
 
     /**
@@ -81,9 +71,7 @@ public final class GameRules {
      * @return la posizione bersaglio dell'en passant
      */
     public static Optional<Position> getEnPassantTarget(final ReadOnlyBoard board) {
-        final String[] fields = fenFields(board);
-        final String target = fields.length > FEN_EN_PASSANT_INDEX ? fields[FEN_EN_PASSANT_INDEX] : "-";
-        return algebraicToPosition(target);
+        return algebraicToPosition(board.getEnPassantTarget());
     }
 
     /**
@@ -93,15 +81,7 @@ public final class GameRules {
      * @return il numero di semi-mosse
      */
     public static int getHalfmoveClock(final ReadOnlyBoard board) {
-        final String[] fields = fenFields(board);
-        if (fields.length > FEN_HALFMOVE_INDEX) {
-            try {
-                return Integer.parseInt(fields[FEN_HALFMOVE_INDEX]);
-            } catch (final NumberFormatException e) {
-                return 0;
-            }
-        }
-        return 0;
+        return board.getHalfmoveClock();
     }
 
     /**
@@ -111,15 +91,7 @@ public final class GameRules {
      * @return il numero della mossa
      */
     public static int getFullmoveNumber(final ReadOnlyBoard board) {
-        final String[] fields = fenFields(board);
-        if (fields.length > FEN_FULLMOVE_INDEX) {
-            try {
-                return Integer.parseInt(fields[FEN_FULLMOVE_INDEX]);
-            } catch (final NumberFormatException e) {
-                return 1;
-            }
-        }
-        return 1;
+        return board.getFullmoveNumber();
     }
 
     /**
@@ -664,6 +636,26 @@ public final class GameRules {
         @Override
         public String toFEN() {
             return original.toFEN();
+        }
+
+        @Override
+        public String getCastlingRights() {
+            return original.getCastlingRights();
+        }
+
+        @Override
+        public String getEnPassantTarget() {
+            return original.getEnPassantTarget();
+        }
+
+        @Override
+        public int getHalfmoveClock() {
+            return original.getHalfmoveClock();
+        }
+
+        @Override
+        public int getFullmoveNumber() {
+            return original.getFullmoveNumber();
         }
     }
 }

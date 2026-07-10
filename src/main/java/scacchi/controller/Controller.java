@@ -3,10 +3,12 @@ package scacchi.controller;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
+
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.board.SaveManager;
 import scacchi.model.pieces.Piece;
+import scacchi.model.pieces.PieceFactory;
 
 /**
  * Gestisce gli eventi di gioco: selezione delle caselle, validazione ed esecuzione
@@ -18,7 +20,6 @@ public final class Controller {
     private static final char DEFAULT_PROMOTION_CHOICE = 'q';
     private static final int WHITE = 1;
     private static final int BLACK = -1;
-    private static final int BOARD_SIZE = 8;
     private static final int KINGSIDE_ROOK_COLUMN = 7;
     private static final int QUEENSIDE_ROOK_COLUMN = 0;
     private static final int KINGSIDE_KING_DEST_COLUMN = 6;
@@ -222,9 +223,10 @@ public final class Controller {
 
     /*
      valida ed esegue una mossa gestendo le mosse speciali
-     (arrocco, presa en passant, promozione) e aggiornando i dati
+     (arrocco, presa en passant, promozione) e aggiornando direttamente i dati
      della board (colore attivo, diritti di arrocco, bersaglio en passant,
-     contatore delle 50 mosse, numero di mossa)
+     contatore delle 50 mosse, numero di mossa) tramite i setter dedicati di Board,
+     senza dover ricostruire l'intera scacchiera da una stringa FEN.
      */
     private MoveOutcome executeMove(final Position from, final Position to, final char promotionChoice) {
         final Optional<Piece> movingPieceOpt = board.getPieceAt(from);
@@ -243,23 +245,41 @@ public final class Controller {
             return pseudoLegal ? MoveOutcome.MOVE_LEAVES_KING_IN_CHECK : MoveOutcome.ILLEGAL_MOVE;
         }
 
-        /* calcolo le caratteristiche della mossa prima di cambiare la board. */
+        /* calcolo le caratteristiche della mossa prima di cambiare la board */
         final boolean isCastling = isKing && Math.abs(to.x() - from.x()) == CASTLING_KING_DELTA;
         final boolean isEnPassant = isPawn && GameRules.isEnPassantCapture(from, to, board);
         final boolean isCapture = !board.isEmpty(to) || isEnPassant;
         final boolean isPawnDoubleStep = isPawn && Math.abs(to.y() - from.y()) == PAWN_DOUBLE_STEP_DELTA;
         final boolean isPromotion = isPawn && GameRules.isPromotion(to, movingPiece);
-        final String castlingRightsBefore = GameRules.getCastlingRights(board);
-        final int halfmoveClockBefore = GameRules.getHalfmoveClock(board);
-        final int fullmoveNumberBefore = GameRules.getFullmoveNumber(board);
+        final String castlingRightsBefore = board.getCastlingRights();
+        final int halfmoveClockBefore = board.getHalfmoveClock();
+        final int fullmoveNumberBefore = board.getFullmoveNumber();
 
-        /* sposta il pezzo principale, unica chiamata che registra lo storico */
+        /* sposta il pezzo principale: unica chiamata che registra lo storico (undo) */
         board.movePiece(from, to);
 
-        final String resultingFen = buildResultingFen(from, to, movingColor, isCastling, isEnPassant,
-                isPawnMoveOrCapture(isPawn, isCapture), isPawnDoubleStep, isPromotion,
-                promotionChoice, castlingRightsBefore, halfmoveClockBefore, fullmoveNumberBefore);
-        board.loadFromFEN(resultingFen);
+        /* applico gli effetti collaterali delle mosse speciali direttamente sulla board,
+           senza aggiungere ulteriori voci allo storico di undo */
+        if (isCastling) {
+            moveCastlingRook(to, movingColor);
+        }
+        if (isEnPassant) {
+            final Position capturedPawnPos = GameRules.enPassantCapturedPawnPosition(to, movingColor);
+            board.removePiece(capturedPawnPos);
+        }
+        if (isPromotion) {
+            final char promotedFenChar = GameRules.sanitizePromotionChoice(promotionChoice, movingColor);
+            board.putPiece(to, PieceFactory.createPiece(promotedFenChar));
+        }
+
+        /* aggiorno i metadati della partita tramite i setter dedicati della board */
+        board.setActiveColor(movingColor == WHITE ? 'b' : 'w');
+        board.setCastlingRights(updateCastlingRights(castlingRightsBefore, from, to, movingColor, isCastling));
+        board.setEnPassantTarget(isPawnDoubleStep
+                ? GameRules.positionToAlgebraic(new Position(from.x(), (from.y() + to.y()) / 2))
+                : "-");
+        board.setHalfmoveClock(isPawnMoveOrCapture(isPawn, isCapture) ? 0 : halfmoveClockBefore + 1);
+        board.setFullmoveNumber(movingColor == BLACK ? fullmoveNumberBefore + 1 : fullmoveNumberBefore);
 
         return MoveOutcome.MOVE_PLAYED;
     }
@@ -268,83 +288,25 @@ public final class Controller {
         return isPawn || isCapture;
     }
 
-    private String buildResultingFen(final Position from, final Position to, final int movingColor,
-            final boolean isCastling, final boolean isEnPassant,
-            final boolean resetsHalfmoveClock, final boolean isPawnDoubleStep, final boolean isPromotion,
-            final char promotionChoice, final String castlingRightsBefore,
-            final int halfmoveClockBefore, final int fullmoveNumberBefore) {
-
-        final Character[][] grid = snapshotGrid();
-
-        if (isCastling) {
-            applyCastlingRookShift(grid, to, movingColor);
-        }
-        if (isEnPassant) {
-            final Position capturedPawnPos = GameRules.enPassantCapturedPawnPosition(to, movingColor);
-            grid[capturedPawnPos.y()][capturedPawnPos.x()] = null;
-        }
-        if (isPromotion) {
-            grid[to.y()][to.x()] = GameRules.sanitizePromotionChoice(promotionChoice, movingColor);
-        }
-
-        final String placement = buildPlacementString(grid);
-        final char activeColorAfter = movingColor == WHITE ? 'b' : 'w';
-        final String castlingRightsAfter = updateCastlingRights(castlingRightsBefore, from, to, movingColor, isCastling);
-        final String enPassantTargetAfter = isPawnDoubleStep
-                ? GameRules.positionToAlgebraic(new Position(from.x(), (from.y() + to.y()) / 2))
-                : "-";
-        final int halfmoveClockAfter = resetsHalfmoveClock ? 0 : halfmoveClockBefore + 1;
-        final int fullmoveNumberAfter = movingColor == BLACK ? fullmoveNumberBefore + 1 : fullmoveNumberBefore;
-
-        return placement + ' ' + activeColorAfter + ' ' + castlingRightsAfter + ' '
-                + enPassantTargetAfter + ' ' + halfmoveClockAfter + ' ' + fullmoveNumberAfter;
-    }
-
-    private Character[][] snapshotGrid() {
-        final Character[][] grid = new Character[BOARD_SIZE][BOARD_SIZE];
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            for (int y = 0; y < BOARD_SIZE; y++) {
-                grid[y][x] = board.getPieceAt(new Position(x, y)).map(Piece::getFenChar).orElse(null);
-            }
-        }
-        return grid;
-    }
-
-    private void applyCastlingRookShift(final Character[][] grid, final Position kingDestination, final int color) {
+    /*
+     sposta la torre coinvolta nell'arrocco nella sua casella di destinazione usando
+     removePiece/putPiece di Board: non aggiunge nuove voci allo storico di undo,
+     dato che è già stata registrata un'unica volta da movePiece per il re.
+     */
+    private void moveCastlingRook(final Position kingDestination, final int color) {
         final int row = color == WHITE ? 0 : BLACK_HOME_ROW;
         if (kingDestination.x() == KINGSIDE_KING_DEST_COLUMN) {
-            grid[row][KINGSIDE_ROOK_DEST_COLUMN] = grid[row][KINGSIDE_ROOK_COLUMN];
-            grid[row][KINGSIDE_ROOK_COLUMN] = null;
+            relocateRook(new Position(KINGSIDE_ROOK_COLUMN, row), new Position(KINGSIDE_ROOK_DEST_COLUMN, row));
         } else if (kingDestination.x() == QUEENSIDE_KING_DEST_COLUMN) {
-            grid[row][QUEENSIDE_ROOK_DEST_COLUMN] = grid[row][QUEENSIDE_ROOK_COLUMN];
-            grid[row][QUEENSIDE_ROOK_COLUMN] = null;
+            relocateRook(new Position(QUEENSIDE_ROOK_COLUMN, row), new Position(QUEENSIDE_ROOK_DEST_COLUMN, row));
         }
     }
 
-    private String buildPlacementString(final Character[][] grid) {
-        final StringBuilder placement = new StringBuilder();
-        for (int y = BOARD_SIZE - 1; y >= 0; y--) {
-            int emptySquares = 0;
-            for (int x = 0; x < BOARD_SIZE; x++) {
-                final Character fenChar = grid[y][x];
-                if (fenChar == null) {
-                    emptySquares++;
-                } else {
-                    if (emptySquares > 0) {
-                        placement.append(emptySquares);
-                        emptySquares = 0;
-                    }
-                    placement.append(fenChar.charValue());
-                }
-            }
-            if (emptySquares > 0) {
-                placement.append(emptySquares);
-            }
-            if (y > 0) {
-                placement.append('/');
-            }
-        }
-        return placement.toString();
+    private void relocateRook(final Position from, final Position to) {
+        board.getPieceAt(from).ifPresent((final Piece rook) -> {
+            board.removePiece(from);
+            board.putPiece(to, rook);
+        });
     }
 
     private String updateCastlingRights(final String rightsBefore, final Position from, final Position to,
