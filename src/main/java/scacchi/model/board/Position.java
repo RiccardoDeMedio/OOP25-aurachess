@@ -8,7 +8,7 @@ package scacchi.model.board;
  */
 public record Position(int x, int y) {
 
-    private static final int MAX_COORD = 7;
+    public static final int BOARD_SIZE = 8;
 
     /**
      * Constructor that validates the coordinates.
@@ -17,8 +17,19 @@ public record Position(int x, int y) {
      * @param y the row
      */
     public Position {
-        if (x < 0 || x > MAX_COORD || y < 0 || y > MAX_COORD) {
+        if (!isValid(x, y)) {
             throw new IllegalArgumentException("Coordinate fuori dalla scacchiera");
         }
+    }
+
+    /**
+     * Checks if the given coordinates are within the chessboard boundaries.
+     *
+     * @param x the column to check
+     * @param y the row to check
+     * @return true if the coordinates are valid, false otherwise
+     */
+    public static boolean isValid(final int x, final int y) {
+        return x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
     }
 }
