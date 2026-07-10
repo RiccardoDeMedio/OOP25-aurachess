@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
 
+import scacchi.gamerules.GameRules;
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.board.SaveManager;
