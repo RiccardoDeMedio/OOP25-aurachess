@@ -1,4 +1,4 @@
-package scacchi.gamerules;
+package scacchi.model.gamerules;
 
 import java.util.HashMap;
 import java.util.HashSet;
