@@ -51,6 +51,26 @@ public final class Board implements ReadOnlyBoard {
         return activeColor;
     }
 
+    @Override
+    public String getCastlingRights() {
+        return this.castlingRights;
+    }
+
+    @Override
+    public String getEnPassantTarget() {
+        return this.enPassantTarget;
+    }
+
+    @Override
+    public int getHalfmoveClock() {
+        return this.halfmoveClock;
+    }
+
+    @Override
+    public int getFullmoveNumber() {
+        return this.fullmoveNumber;
+    }
+
     /**
      * Allows you to insert a piece in a specific position.
      *
@@ -302,6 +322,15 @@ public final class Board implements ReadOnlyBoard {
      */
     public void setFullmoveNumber(final int fullmoveNumber) {
         this.fullmoveNumber = fullmoveNumber;
+    }
+
+    /**
+     * Directly removes a piece from the chessboard, useful for promotion and for the en passant.
+     *
+     * @param pos the position from which to remove the piece
+     */
+    public void removePiece(final Position pos) {
+        state.remove(pos);
     }
 
 }

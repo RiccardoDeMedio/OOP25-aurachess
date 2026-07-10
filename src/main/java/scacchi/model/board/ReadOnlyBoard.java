@@ -38,4 +38,32 @@ public interface ReadOnlyBoard {
      * @return FEN string to save the current state of the board
      */
     String toFEN();
+
+    /**
+     * Returns the current castling rights.
+     *
+     * @return the string representing the rights (es. "KQkq")
+     */
+    String getCastlingRights();
+
+    /**
+     * Returns the target square of the en passant capture.
+     *
+     * @return the target (es. "e3") or "-"
+     */
+    String getEnPassantTarget();
+
+    /**
+     * Returns the counter for the 50-move rule.
+     *
+     * @return the number of half-moves
+     */
+    int getHalfmoveClock();
+
+    /**
+     * Returns the number of the current move.
+     *
+     * @return the current turn
+     */
+    int getFullmoveNumber();
 }
