@@ -325,7 +325,7 @@ public final class Board implements ReadOnlyBoard {
     }
 
     /**
-     * Directly removes a piece from the chessboard.
+     * Directly removes a piece from the chessboard, useful for promotion and for the en passant.
      *
      * @param pos the position from which to remove the piece
      */
