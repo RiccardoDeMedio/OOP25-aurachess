@@ -8,6 +8,7 @@ import scacchi.model.board.Position;
 import scacchi.model.pieces.Piece;
 public class AuraEngine {
     private final int maxDepth;
+    private List<Integer> allEvalutations = new LinkedList<Integer>();
     private final int pieceTable[][] = { // To assign a value to each piece for each square (As 21/05/2026, most of the values are to be updated and corrected) 
         { // White Pawn
             0,   0,   0,   0,   0,   0,   0,   0,   // 8 - Impossible for pawns
@@ -154,6 +155,7 @@ public class AuraEngine {
 
     public AuraEngine(int maxDepth) {
         this.maxDepth = maxDepth;
+        this.allEvalutations = new LinkedList<Integer>();
     }
     public int getDepth() {
         return maxDepth;
@@ -266,6 +268,7 @@ public class AuraEngine {
         }
         return bestMove;
     }
+    
     private int calculateLoss(Board board, Move move, boolean isWhite) { //Centipawn calculated as Chess.com
         Board newBoard = board.makeMove(move);
         Move bestMove = findBestMove(board, isWhite);
@@ -283,9 +286,21 @@ public class AuraEngine {
         }
         loss = Math.max(loss, minimum); 
     }
+
     public int calculatePrecision(Board board, Move move, boolean isWhite) {
         int loss = calculateLoss(board, move, isWhite);
-        int precision = Math.max(0, (100 - loss));
+        int minimum = 0;
+        int precision = Math.max(minimum, (100 - loss));
+        allEvalutations.add(precision);
         return precision;
+    }
+    public int averagePrecision() {
+        int averagePrecision = 0;
+        int totalPrecision = 0;
+        for (Integer precision : allEvalutations) {
+            totalPrecision = totalPrecision + precision;
+        }
+        averagePrecision = totalPrecision / allEvalutations.size();
+        return averagePrecision;
     }
 }
