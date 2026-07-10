@@ -12,6 +12,7 @@ import scacchi.model.board.ReadOnlyBoard;
 public final class Pawn implements Piece {
 
     private static final int BLACK_START_ROW = 6;
+    private static final int WHITE_START_ROW = 1;
     private final int color; // 1 for white, -1 for black
 
     /**
@@ -40,7 +41,7 @@ public final class Pawn implements Piece {
     public Set<Position> getValidMoves(final Position currentPosition, final ReadOnlyBoard board) {
         final Set<Position> validMoves = new HashSet<>();
         final int direction = (this.color == 1) ? 1 : -1; // 1 for white (up), -1 for black (down)
-        final int startRow = (this.color == 1) ? 1 : BLACK_START_ROW; // Starting row for pawns
+        final int startRow = (this.color == 1) ? WHITE_START_ROW : BLACK_START_ROW; // Starting row for pawns
         final int nextY = currentPosition.y() + direction;
 
         if (nextY >= 0 && nextY < 8) {
