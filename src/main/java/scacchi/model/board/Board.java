@@ -296,7 +296,7 @@ public final class Board implements ReadOnlyBoard {
     /**
      * Set the target box for the en passant catch.
      *
-     * @param enPassantTarget Coordinate in algebraic notation (e.g. "e3") or "-"
+     * @param enPassantTarget Coordinate in algebraic notation (es. "e3") or "-"
      */
     public void setEnPassantTarget(final String enPassantTarget) {
         this.enPassantTarget = enPassantTarget;

@@ -57,4 +57,17 @@ public interface ChessView {
      * @param listener l'azione da eseguire quando viene premuto il tasto
      */
     void setSaveListener(Runnable listener);
+
+    /**
+     * Display a pop-up allowing the user to select the item for the promotion.
+     *
+     * @param isWhite to say which color is going on promotion
+     * @return the lowercase FEN character corresponding to the choice ('q', 'r', 'b', 'n')
+     */
+    char askPromotionChoice(boolean isWhite);
+
+    /**
+     * Makes the game window visible.
+     */
+    void showView();
 }
