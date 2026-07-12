@@ -43,4 +43,18 @@ public interface ChessView {
      * @param pos the position of the box to be restored
      */
     void resetBackground(Position pos);
+
+    /**
+     * Imposta il listener per il pulsante di annullamento mossa (rollback).
+     *
+     * @param listener l'azione da eseguire quando viene premuto il tasto
+     */
+    void setUndoListener(Runnable listener);
+
+    /**
+     * Imposta il listener per il pulsante di salvataggio.
+     *
+     * @param listener l'azione da eseguire quando viene premuto il tasto
+     */
+    void setSaveListener(Runnable listener);
 }
