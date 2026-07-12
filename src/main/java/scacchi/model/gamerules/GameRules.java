@@ -55,16 +55,6 @@ public final class GameRules {
     }
 
     /**
-     * Returns the current castling rights (es. "KQkq", "Kq", "-").
-     *
-     * @param board the current board
-     * @return the string representing the rights
-     */
-    public static String getCastlingRights(final ReadOnlyBoard board) {
-        return board.getCastlingRights();
-    }
-
-    /**
      * Returns the target square of the en passant capture, if present.
      *
      * @param board the current board
@@ -72,26 +62,6 @@ public final class GameRules {
      */
     public static Optional<Position> getEnPassantTarget(final ReadOnlyBoard board) {
         return algebraicToPosition(board.getEnPassantTarget());
-    }
-
-    /**
-     * Returns the half-move counter used for the 50-move rule.
-     *
-     * @param board the current board
-     * @return the number of half-moves
-     */
-    public static int getHalfmoveClock(final ReadOnlyBoard board) {
-        return board.getHalfmoveClock();
-    }
-
-    /**
-     * Returns the current move number (incremented after Black's move).
-     *
-     * @param board the current board
-     * @return the move number
-     */
-    public static int getFullmoveNumber(final ReadOnlyBoard board) {
-        return board.getFullmoveNumber();
     }
 
     /**
@@ -303,7 +273,7 @@ public final class GameRules {
      * @return true if it can castle
      */
     public static boolean canCastleKingside(final int color, final ReadOnlyBoard board) {
-        if (getCastlingRights(board).indexOf(color == WHITE ? 'K' : 'k') < 0) {
+        if (board.getCastlingRights().indexOf(color == WHITE ? 'K' : 'k') < 0) {
             return false;
         }
         final int row = color == WHITE ? 0 : 7;
@@ -327,7 +297,7 @@ public final class GameRules {
      * @return true if it can castle
      */
     public static boolean canCastleQueenside(final int color, final ReadOnlyBoard board) {
-        if (getCastlingRights(board).indexOf(color == WHITE ? 'Q' : 'q') < 0) {
+        if (board.getCastlingRights().indexOf(color == WHITE ? 'Q' : 'q') < 0) {
             return false;
         }
         final int row = color == WHITE ? 0 : 7;
@@ -521,7 +491,7 @@ public final class GameRules {
      * @return true if limits are exceeded
      */
     public static boolean isFiftyMoveRule(final ReadOnlyBoard board) {
-        return getHalfmoveClock(board) >= FIFTY_MOVE_HALFMOVE_LIMIT;
+        return board.getHalfmoveClock() >= FIFTY_MOVE_HALFMOVE_LIMIT;
     }
 
     /**
