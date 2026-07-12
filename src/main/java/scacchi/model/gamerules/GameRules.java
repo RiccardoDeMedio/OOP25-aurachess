@@ -12,7 +12,7 @@ import scacchi.model.board.ReadOnlyBoard;
 import scacchi.model.pieces.Piece;
 
 /**
- * Gestisce le regole del gioco degli scacchi.
+ * It manages the rules of the game of chess.
  */
 public final class GameRules {
 
@@ -49,56 +49,56 @@ public final class GameRules {
     };
 
     /**
-     * Costruttore privato per nascondere il costruttore di default.
+     * Private constructor to hide the default constructor.
      */
     private GameRules() {
     }
 
     /**
-     * Restituisce i diritti di arrocco correnti (es. "KQkq", "Kq", "-").
+     * Returns the current castling rights (es. "KQkq", "Kq", "-").
      *
-     * @param board la board attuale
-     * @return la stringa che rappresenta i diritti
+     * @param board the current board
+     * @return the string representing the rights
      */
     public static String getCastlingRights(final ReadOnlyBoard board) {
         return board.getCastlingRights();
     }
 
     /**
-     * Restituisce la casella bersaglio della presa en passant, se presente.
+     * Returns the target square of the en passant capture, if present.
      *
-     * @param board la board attuale
-     * @return la posizione bersaglio dell'en passant
+     * @param board the current board
+     * @return the en passant target position
      */
     public static Optional<Position> getEnPassantTarget(final ReadOnlyBoard board) {
         return algebraicToPosition(board.getEnPassantTarget());
     }
 
     /**
-     * Restituisce il contatore delle semi-mosse usato per la regola delle 50 mosse.
+     * Returns the half-move counter used for the 50-move rule.
      *
-     * @param board la board attuale
-     * @return il numero di semi-mosse
+     * @param board the current board
+     * @return the number of half-moves
      */
     public static int getHalfmoveClock(final ReadOnlyBoard board) {
         return board.getHalfmoveClock();
     }
 
     /**
-     * Restituisce il numero di mossa corrente (incrementato dopo la mossa del nero).
+     * Returns the current move number (incremented after Black's move).
      *
-     * @param board la board attuale
-     * @return il numero della mossa
+     * @param board the current board
+     * @return the move number
      */
     public static int getFullmoveNumber(final ReadOnlyBoard board) {
         return board.getFullmoveNumber();
     }
 
     /**
-     * Converte una casella in notazione algebrica (es. "e3") in una {@link Position}.
+     * Converts a square in algebraic notation (es. "e3") into a {@link Position}.
      *
-     * @param algebraic la stringa algebrica
-     * @return la posizione corrispondente
+     * @param algebraic the algebraic string
+     * @return the corresponding position
      */
     public static Optional<Position> algebraicToPosition(final String algebraic) {
         if (algebraic == null || algebraic.length() != ALGEBRAIC_LENGTH) {
@@ -113,10 +113,10 @@ public final class GameRules {
     }
 
     /**
-     * Converte una {@link Position} nella corrispondente notazione algebrica (es. "e3").
+     * Converts a {@link Position} into the corresponding algebraic notation (es. "e3").
      *
-     * @param pos la posizione da convertire
-     * @return la stringa in notazione algebrica
+     * @param pos the position to be converted
+     * @return the string in algebraic notation
      */
     public static String positionToAlgebraic(final Position pos) {
         final char file = (char) (FILE_A + pos.x());
@@ -125,11 +125,11 @@ public final class GameRules {
     }
 
     /**
-     * Individuazione del re sulla scacchiera.
+     * Locating the king on the chessboard.
      *
-     * @param color il colore del re
-     * @param board la scacchiera
-     * @return la posizione del re
+     * @param color the king's color
+     * @param board the current board
+     * @return the king's position
      */
     public static Optional<Position> findKing(final int color, final ReadOnlyBoard board) {
         for (int x = 0; x < BOARD_SIZE; x++) {
@@ -147,12 +147,12 @@ public final class GameRules {
     }
 
     /**
-     * Verifica se una casella è attaccata da almeno un pezzo di un dato colore.
+     * Check if a square is under attack by at least one piece of a given color.
      *
-     * @param target la casella bersaglio
-     * @param byColor il colore attaccante
-     * @param board la scacchiera
-     * @return true se la casella è attaccata
+     * @param target the target cell
+     * @param byColor the attacking color
+     * @param board the current board
+     * @return true if the cell is attacked
      */
     public static boolean isSquareAttacked(final Position target, final int byColor, final ReadOnlyBoard board) {
         for (int x = 0; x < BOARD_SIZE; x++) {
@@ -171,13 +171,13 @@ public final class GameRules {
     }
 
     /**
-     * Delega l'attacco al pezzo specifico.
+     * Delegate the attack to the specific piece.
      *
-     * @param piece il pezzo
-     * @param from posizione di origine
-     * @param target posizione bersaglio
-     * @param board scacchiera
-     * @return true se attacca
+     * @param piece the piece
+     * @param from original position
+     * @param target target position to attack
+     * @param board the current board
+     * @return true if it attacks
      */
     private static boolean attacksSquare(final Piece piece, final Position from,
             final Position target, final ReadOnlyBoard board) {
@@ -194,12 +194,12 @@ public final class GameRules {
     }
 
     /**
-     * Verifica l'attacco di un pedone.
+     * Check the pawn's attack.
      *
-     * @param color colore del pedone
-     * @param from origine
-     * @param target bersaglio
-     * @return true se il pedone attacca la casella
+     * @param color pedestrian color
+     * @param from origin position
+     * @param target target position to attack
+     * @return true if the pawn attacks the square
      */
     private static boolean pawnAttacks(final int color, final Position from, final Position target) {
         final int direction = color == WHITE ? 1 : -1;
@@ -207,11 +207,11 @@ public final class GameRules {
     }
 
     /**
-     * Verifica l'attacco di un cavallo.
+     * Check the horse's harness.
      *
-     * @param from origine
-     * @param target bersaglio
-     * @return true se il cavallo attacca la casella
+     * @param from origin position
+     * @param target target position to attack
+     * @return true if the knight attacks the square
      */
     private static boolean knightAttacks(final Position from, final Position target) {
         final int dx = Math.abs(target.x() - from.x());
@@ -220,11 +220,11 @@ public final class GameRules {
     }
 
     /**
-     * Verifica l'attacco del re.
+     * Check the attack on the king.
      *
-     * @param from origine
-     * @param target bersaglio
-     * @return true se il re attacca la casella
+     * @param from origin position
+     * @param target target position to attack
+     * @return true if the king attacks the square
      */
     private static boolean kingAttacks(final Position from, final Position target) {
         final int dx = Math.abs(target.x() - from.x());
@@ -233,13 +233,13 @@ public final class GameRules {
     }
 
     /**
-     * Verifica l'attacco dei pezzi a lungo raggio.
+     * Check for attacks by long-range pieces.
      *
-     * @param from origine
-     * @param target bersaglio
-     * @param board scacchiera
-     * @param directions direzioni di movimento
-     * @return true se la casella è attaccata
+     * @param from origin position
+     * @param target target position to attack
+     * @param board the current board
+     * @param directions directions of movement of the attacking piece
+     * @return true if the cell is attacked
      */
     private static boolean slidingAttacks(final Position from, final Position target,
             final ReadOnlyBoard board, final int[][] directions) {
@@ -265,11 +265,11 @@ public final class GameRules {
     }
 
     /**
-     * Verifica se il re di un dato colore è sotto scacco.
+     * Check if the king of a given color is in check.
      *
-     * @param color il colore da verificare
-     * @param board la scacchiera
-     * @return true se il re è sotto scacco
+     * @param color the color to be checked
+     * @param board the current board
+     * @return true if the king is in check
      */
     public static boolean isKingInCheck(final int color, final ReadOnlyBoard board) {
         final Optional<Position> king = findKing(color, board);
@@ -277,13 +277,13 @@ public final class GameRules {
     }
 
     /**
-     * Verifica se spostare un pezzo lascerebbe il proprio re sotto scacco.
+     * Check whether moving a piece would leave your king in check.
      *
-     * @param from posizione di origine
-     * @param to posizione di destinazione
-     * @param extraCapture cattura extra per mosse speciali (es. en passant)
-     * @param board scacchiera
-     * @return true se la mossa è illegale
+     * @param from origin position
+     * @param to destination position
+     * @param extraCapture extra capture for special moves (es. en passant)
+     * @param board the current board
+     * @return true if the move is illegal
      */
     public static boolean wouldLeaveKingInCheck(final Position from, final Position to,
             final Position extraCapture, final ReadOnlyBoard board) {
@@ -296,11 +296,11 @@ public final class GameRules {
     }
 
     /**
-     * Verifica se l'arrocco corto (lato re) è disponibile per il colore indicato.
+     * Check if short castling (kingside) is available for the specified color.
      *
-     * @param color il colore del giocatore
-     * @param board la scacchiera
-     * @return true se può arroccare
+     * @param color the player's color
+     * @param board the current board
+     * @return true if it can castle
      */
     public static boolean canCastleKingside(final int color, final ReadOnlyBoard board) {
         if (getCastlingRights(board).indexOf(color == WHITE ? 'K' : 'k') < 0) {
@@ -320,11 +320,11 @@ public final class GameRules {
     }
 
     /**
-     * Verifica se l'arrocco lungo (lato donna) è disponibile per il colore indicato.
+     * Check if long castling (queenside) is available for the specified color.
      *
-     * @param color colore del giocatore
-     * @param board la scacchiera
-     * @return true se può arroccare
+     * @param color player color
+     * @param board the current board
+     * @return true if it can castle
      */
     public static boolean canCastleQueenside(final int color, final ReadOnlyBoard board) {
         if (getCastlingRights(board).indexOf(color == WHITE ? 'Q' : 'q') < 0) {
@@ -345,12 +345,12 @@ public final class GameRules {
     }
 
     /**
-     * Controlla che la torre si trovi nella posizione corretta per l'arrocco.
+     * Check that the rook is in the correct position for castling.
      *
-     * @param rookPos posizione della torre
-     * @param color colore del giocatore
-     * @param board scacchiera
-     * @return true se è presente
+     * @param rookPos position of the tower
+     * @param color player color
+     * @param board the current board
+     * @return true if present
      */
     private static boolean isRookInPlace(final Position rookPos, final int color, final ReadOnlyBoard board) {
         return board.getPieceAt(rookPos)
@@ -359,12 +359,12 @@ public final class GameRules {
     }
 
     /**
-     * Verifica una presa en-passant.
+     * Check for an en-passant socket.
      *
-     * @param from origine
-     * @param to bersaglio
-     * @param board scacchiera
-     * @return true se è en passant
+     * @param from origin position
+     * @param to target
+     * @param board the current board
+     * @return true if it is en passant
      */
     public static boolean isEnPassantCapture(final Position from, final Position to, final ReadOnlyBoard board) {
         final Optional<Piece> piece = board.getPieceAt(from);
@@ -376,11 +376,11 @@ public final class GameRules {
     }
 
     /**
-     * Calcola la posizione del pedone avversario catturato en passant.
+     * Calculate the position of the opponent's pawn captured en passant.
      *
-     * @param to la casella bersaglio dell'en passant
-     * @param movingColor il colore che esegue la mossa
-     * @return la posizione del pedone catturato
+     * @param to the target square for the en passant
+     * @param movingColor the color making the move
+     * @return the position of the captured pawn
      */
     public static Position enPassantCapturedPawnPosition(final Position to, final int movingColor) {
         final int capturedRow = movingColor == WHITE ? to.y() - 1 : to.y() + 1;
@@ -388,11 +388,11 @@ public final class GameRules {
     }
 
     /**
-     * Verifica la condizione di promozione.
+     * Check the promotion condition.
      *
-     * @param to casella di destinazione
-     * @param piece il pezzo in movimento
-     * @return true se si tratta di promozione
+     * @param to destination box
+     * @param piece the moving part
+     * @return true if it is a promotion
      */
     public static boolean isPromotion(final Position to, final Piece piece) {
         if (Character.toLowerCase(piece.getFenChar()) != 'p') {
@@ -403,13 +403,13 @@ public final class GameRules {
     }
 
     /**
-     * Normalizza la scelta di promozione a uno tra donna, torre, alfiere o cavallo,
-     * usando la donna come scelta predefinita, e la restituisce con il carattere
-     * FEN corretto per il colore indicato.
+     * Normalizes the promotion choice to one of queen, rook, bishop, or knight,
+     * using the queen as the default, and returns it with the correct
+     * FEN character for the specified color.
      *
-     * @param choice scelta di promozione in formato carattere
-     * @param color colore del giocatore
-     * @return carattere di promozione normalizzato
+     * @param choice selection of promotion in font format
+     * @param color player color
+     * @return normalized promotion character
      */
     public static char sanitizePromotionChoice(final char choice, final int color) {
         final char lower = Character.toLowerCase(choice);
@@ -418,13 +418,13 @@ public final class GameRules {
     }
 
     /**
-     * Calcola l'insieme delle mosse legali per il pezzo in una data casella:
-     * parte dalle mosse "grezze" del pezzo, scarta quelle che lascerebbero il
-     * proprio re sotto scacco e aggiunge mosse speciali (arrocco, en passant).
+     * Calculate the set of legal moves for the piece on a given square:
+     * start with the piece's "raw" moves, discard those that would leave one's own king in check,
+     * and add special moves (castling, en passant).
      *
-     * @param from posizione del pezzo
-     * @param board la scacchiera
-     * @return le mosse legali disponibili
+     * @param from position of the part
+     * @param board the current board
+     * @return the available legal steps
      */
     public static Set<Position> getLegalMoves(final Position from, final ReadOnlyBoard board) {
         final Set<Position> legalMoves = new HashSet<>();
@@ -472,11 +472,11 @@ public final class GameRules {
     }
 
     /**
-     * Verifica se il colore indicato dispone di almeno una mossa legale.
+     * Check if the indicated color has at least one legal move.
      *
-     * @param color il colore del giocatore
-     * @param board la scacchiera
-     * @return true se sono presenti mosse
+     * @param color the player's color
+     * @param board the current board
+     * @return true if moves are present
      */
     public static boolean hasAnyLegalMove(final int color, final ReadOnlyBoard board) {
         for (int x = 0; x < BOARD_SIZE; x++) {
@@ -493,11 +493,11 @@ public final class GameRules {
     }
 
     /**
-     * Verifica se il colore indicato è sotto scacco matto.
+     * Check if the indicated color is in checkmate.
      *
-     * @param color il colore del giocatore
-     * @param board la scacchiera
-     * @return true in caso di scacco matto
+     * @param color the player's color
+     * @param board the current board
+     * @return true in the event of checkmate
      */
     public static boolean isCheckmate(final int color, final ReadOnlyBoard board) {
         return isKingInCheck(color, board) && !hasAnyLegalMove(color, board);
@@ -506,30 +506,30 @@ public final class GameRules {
     /**
      * Verifica se il colore indicato è in stallo.
      *
-     * @param color il colore del giocatore
-     * @param board la scacchiera
-     * @return true in caso di stallo
+     * @param color the player's color
+     * @param board the current board
+     * @return true in case of deadlock
      */
     public static boolean isStalemate(final int color, final ReadOnlyBoard board) {
         return !isKingInCheck(color, board) && !hasAnyLegalMove(color, board);
     }
 
     /**
-     * Verifica la patta per la regola delle 50 mosse.
+     * Check for a draw under the 50-move rule.
      *
-     * @param board la scacchiera
-     * @return true in caso di superamento limiti
+     * @param board the current board
+     * @return true if limits are exceeded
      */
     public static boolean isFiftyMoveRule(final ReadOnlyBoard board) {
         return getHalfmoveClock(board) >= FIFTY_MOVE_HALFMOVE_LIMIT;
     }
 
     /**
-     * Verifica la patta per triplice ripetizione confrontando
-     * posizione, colori, e diritti lungo lo storico della partita.
+     * Check for a draw by threefold repetition by comparing
+     * position, colors, and rights throughout the game history.
      *
-     * @param board la scacchiera
-     * @return true in caso di triplice ripetizione
+     * @param board the current board
+     * @return true in the event of a threefold repetition
      */
     public static boolean isThreefoldRepetition(final Board board) {
         final List<String> history = board.getChronologicalHistory();
@@ -545,10 +545,10 @@ public final class GameRules {
     }
 
     /**
-     * Estrae la chiave per la posizione dal FEN per verifica patta.
+     * Extracts the position key from the FEN for draw verification.
      *
-     * @param fen la notazione FEN
-     * @return la chiave parsata
+     * @param fen FEN notation
+     * @return the parsed key
      */
     private static String positionKey(final String fen) {
         final String[] parts = fen.split(" ");
@@ -561,10 +561,10 @@ public final class GameRules {
     }
 
     /**
-     * Verifica la patta per materiale insufficiente.
+     * Check the position for insufficient material.
      *
-     * @param board la scacchiera
-     * @return true se il materiale è insufficiente
+     * @param board the current board
+     * @return true if the material is insufficient
      */
     public static boolean isInsufficientMaterial(final ReadOnlyBoard board) {
         int whiteMinorPieces = 0;
@@ -596,7 +596,7 @@ public final class GameRules {
     }
 
     /**
-     * Simulazione di una mossa (senza cambiare la board reale).
+     * Simulation of a move (without changing the actual board).
      */
     private static final class SimulatedBoard implements ReadOnlyBoard {
         private final ReadOnlyBoard original;

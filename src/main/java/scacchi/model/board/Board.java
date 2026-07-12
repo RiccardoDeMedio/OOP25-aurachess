@@ -25,7 +25,7 @@ public final class Board implements ReadOnlyBoard {
 
     private char activeColor = 'w';         // 'w' for white, 'b' for black
     private String castlingRights = "KQkq"; // Initial castling rights
-    private String enPassantTarget = "-";   // Target square en passant (es "e3")
+    private String enPassantTarget = "-";   // Target square en passant (es. "e3")
     private int halfmoveClock;              // Counter for the 50-move rule
     private int fullmoveNumber = 1;         // Current turn number
 
@@ -274,10 +274,6 @@ public final class Board implements ReadOnlyBoard {
         final String currentStatus = savedHistory.getLast();
         this.loadFromFEN(currentStatus);
     }
-
-    /*
-     * SETTER PER LE REGOLE AVANZATE, per Riki
-     */
 
     /**
      * Set the color of who should move.

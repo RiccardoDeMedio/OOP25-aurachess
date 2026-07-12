@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 import javax.swing.WindowConstants;
 
 /**
- * Implementazione dell'interfaccia grafica della scacchiera.
+ * Implementation of the chessboard's graphical interface.
  */
 public final class ChessViewImpl implements ChessView {
 
@@ -45,7 +45,7 @@ public final class ChessViewImpl implements ChessView {
     private final JFrame frame;
 
     /**
-     * Costruttore: inizializza le impostazioni della finestra e disegna la scacchiera.
+     * Constructor: initializes the window settings and draws the chessboard.
      */
     public ChessViewImpl() {
         frame = new JFrame("AuraChess");
@@ -55,7 +55,7 @@ public final class ChessViewImpl implements ChessView {
         final int windowSize = (int) (screenSize.height * SCREEN_PERCENTAGE);
 
         frame.setSize(windowSize, windowSize);
-        // Impostato a null per far comparire l'immagine al centro
+        // Set to null to center the image.
         frame.setLocationRelativeTo(null);
 
         final int minSize = windowSize / 2;
@@ -74,10 +74,10 @@ public final class ChessViewImpl implements ChessView {
         for (int row = 0; row < BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {
 
-                // Impostiamo il colore base di questa casella
+                // Let's set the base color for this box.
                 final Color baseColor = ((row + col) % 2 == 0) ? lightColor : darkColor;
 
-                // Passiamo il colore base al costruttore del nostro bottone custom
+                // We pass the base color to the constructor of our custom button.
                 final ChessSquare square = new ChessSquare(baseColor);
 
                 final Position logicalPos = new Position(col, BOARD_SIZE - 1 - row);
@@ -132,10 +132,10 @@ public final class ChessViewImpl implements ChessView {
     }
 
     /**
-     * Recupera l'immagine del pezzo o dalla cache o dal disco.
+     * Retrieves the piece image from either the cache or the disk.
      *
-     * @param fenChar il carattere FEN del pezzo
-     * @return l'immagine del pezzo corrispondente
+     * @param fenChar the FEN character of the piece
+     * @return the image of the corresponding part
      */
     private Image getImageForPiece(final char fenChar) {
         if (imageCache.containsKey(fenChar)) {
@@ -162,7 +162,7 @@ public final class ChessViewImpl implements ChessView {
         }
 
         try {
-            // ImageIO.read è SINCRONO, assicura che l'immagine sia caricata subito
+            // ImageIO.read is synchronous; it ensures the image is loaded immediately.
             final Image img = ImageIO.read(imageUrl);
             imageCache.put(fenChar, img);
             return img;
@@ -212,7 +212,7 @@ public final class ChessViewImpl implements ChessView {
     }
 
     /**
-     * Un JButton custom capace di renderizzare la propria immagine e ricordare il suo colore originale.
+     * A custom JButton capable of rendering its own image and remembering its original color.
      */
     private static final class ChessSquare extends JButton {
         @Serial
@@ -226,15 +226,15 @@ public final class ChessViewImpl implements ChessView {
         ChessSquare(final Color defaultBg) {
             this.defaultBg = defaultBg;
             this.setBackground(defaultBg);
-            this.setBorderPainted(false);   // Nasconde i bordi 3d del bottone
-            this.setFocusPainted(false);    // Nasconde il tratteggio quando si clicca
-            this.setOpaque(true);           // Obbliga Java a colorare tutto lo sfondo
+            this.setBorderPainted(false);   // Hides the button's 3D borders.
+            this.setFocusPainted(false);    // Hides the hatching when clicked.
+            this.setOpaque(true);           // Forces Java to color the entire background.
         }
 
         void setPieceImage(final Image image) {
-            // Aggiorno il dato in memoria
+            // I am updating the data in memory.
             this.pieceImage = image;
-            // Chiama paintComponent per aggiornare lo schermo
+            // Call paintComponent to update the screen.
             this.repaint();
         }
 
@@ -244,14 +244,14 @@ public final class ChessViewImpl implements ChessView {
 
         @Override
         protected void paintComponent(final Graphics g) {
-            // Richiama il metodo originale del JButton per colorare lo sfondo
+            // Calls the original JButton method to color the background.
             super.paintComponent(g);
 
             if (pieceImage != null) {
                 final Graphics2D g2 = (Graphics2D) g.create();
-                // Anti-Aliasing implementato per smussare i bordi
+                // Antialiasing implemented to smooth edges
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                // Interpolazione Bilineare implementata per mantenere l'immagine nitida
+                // Bilinear interpolation implemented to keep the image sharp.
                 g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
                 final int width = getWidth() - (PADDING * 2);
