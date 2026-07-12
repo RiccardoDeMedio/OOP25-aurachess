@@ -17,15 +17,15 @@ import java.util.Iterator;
  */
 public final class Board implements ReadOnlyBoard {
 
-    private static final int BOARD_ROW = 8;
-    private static final int BOARD_COLUMN = 8;
+    private static final int BOARD_ROW = Position.BOARD_SIZE;
+    private static final int BOARD_COLUMN = Position.BOARD_SIZE;
 
     private final Map<Position, Piece> state;
     private final Deque<String> history = new ArrayDeque<>();
 
     private char activeColor = 'w';         // 'w' for white, 'b' for black
     private String castlingRights = "KQkq"; // Initial castling rights
-    private String enPassantTarget = "-";   // Target square en passant (es "e3")
+    private String enPassantTarget = "-";   // Target square en passant (es. "e3")
     private int halfmoveClock;              // Counter for the 50-move rule
     private int fullmoveNumber = 1;         // Current turn number
 
@@ -162,7 +162,7 @@ public final class Board implements ReadOnlyBoard {
         // Read the block of pieces
         final String piecesBlock = fenParts[0];
         final String[] rows = piecesBlock.split("/");
-        if (rows.length != 8) {
+        if (rows.length != BOARD_ROW) {
             throw new IllegalArgumentException("Stringa FEN malformata: previste 8 righe, trovate " + rows.length);
         }
 
@@ -274,10 +274,6 @@ public final class Board implements ReadOnlyBoard {
         final String currentStatus = savedHistory.getLast();
         this.loadFromFEN(currentStatus);
     }
-
-    /*
-     * SETTER PER LE REGOLE AVANZATE, per Riki
-     */
 
     /**
      * Set the color of who should move.
