@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.board.ReadOnlyBoard;
@@ -16,7 +17,6 @@ import scacchi.model.pieces.Piece;
  */
 public final class GameRules {
 
-    private static final int BOARD_SIZE = 8;
     private static final int WHITE = 1;
 
     private static final int WHITE_PROMOTION_ROW = 7;
@@ -76,7 +76,7 @@ public final class GameRules {
         }
         final int x = algebraic.charAt(0) - FILE_A;
         final int y = Character.getNumericValue(algebraic.charAt(1)) - 1;
-        if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+        if (x < 0 || x >= Position.BOARD_SIZE || y < 0 || y >= Position.BOARD_SIZE) {
             return Optional.empty();
         }
         return Optional.of(new Position(x, y));
@@ -102,8 +102,8 @@ public final class GameRules {
      * @return the king's position
      */
     public static Optional<Position> findKing(final int color, final ReadOnlyBoard board) {
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            for (int y = 0; y < BOARD_SIZE; y++) {
+        for (int x = 0; x < Position.BOARD_SIZE; x++) {
+            for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position pos = new Position(x, y);
                 final Optional<Piece> piece = board.getPieceAt(pos);
                 if (piece.isPresent()
@@ -125,8 +125,8 @@ public final class GameRules {
      * @return true if the cell is attacked
      */
     public static boolean isSquareAttacked(final Position target, final int byColor, final ReadOnlyBoard board) {
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            for (int y = 0; y < BOARD_SIZE; y++) {
+        for (int x = 0; x < Position.BOARD_SIZE; x++) {
+            for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position from = new Position(x, y);
                 final Optional<Piece> pieceOpt = board.getPieceAt(from);
                 if (pieceOpt.isEmpty() || pieceOpt.get().getColor() != byColor) {
@@ -219,7 +219,7 @@ public final class GameRules {
             while (true) {
                 x += dir[0];
                 y += dir[1];
-                if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+                if (x < 0 || x >= Position.BOARD_SIZE || y < 0 || y >= Position.BOARD_SIZE) {
                     break;
                 }
                 final Position current = new Position(x, y);
@@ -253,16 +253,16 @@ public final class GameRules {
      * @param to destination position
      * @param extraCapture extra capture for special moves (es. en passant)
      * @param board the current board
-     * @return true if the move is illegal
+     * @return true if the move is safe (the king is not in check after the move)
      */
     public static boolean wouldLeaveKingInCheck(final Position from, final Position to,
             final Position extraCapture, final ReadOnlyBoard board) {
         final Optional<Piece> movingPiece = board.getPieceAt(from);
         if (movingPiece.isEmpty()) {
-            return false;
+            return true;
         }
         final ReadOnlyBoard simulated = new SimulatedBoard(board, from, to, extraCapture);
-        return isKingInCheck(movingPiece.get().getColor(), simulated);
+        return !isKingInCheck(movingPiece.get().getColor(), simulated);
     }
 
     /**
@@ -407,7 +407,7 @@ public final class GameRules {
         final char type = Character.toLowerCase(piece.getFenChar());
 
         for (final Position dest : piece.getValidMoves(from, board)) {
-            if (!wouldLeaveKingInCheck(from, dest, null, board)) {
+            if (wouldLeaveKingInCheck(from, dest, null, board)) {
                 legalMoves.add(dest);
             }
         }
@@ -419,7 +419,7 @@ public final class GameRules {
                 final int direction = color == WHITE ? 1 : -1;
                 if (ep.y() == from.y() + direction && Math.abs(ep.x() - from.x()) == 1) {
                     final Position capturedPawn = enPassantCapturedPawnPosition(ep, color);
-                    if (!wouldLeaveKingInCheck(from, ep, capturedPawn, board)) {
+                    if (wouldLeaveKingInCheck(from, ep, capturedPawn, board)) {
                         legalMoves.add(ep);
                     }
                 }
@@ -446,20 +446,20 @@ public final class GameRules {
      *
      * @param color the player's color
      * @param board the current board
-     * @return true if moves are present
+     * @return true if the player has no legal moves available
      */
     public static boolean hasAnyLegalMove(final int color, final ReadOnlyBoard board) {
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            for (int y = 0; y < BOARD_SIZE; y++) {
+        for (int x = 0; x < Position.BOARD_SIZE; x++) {
+            for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position pos = new Position(x, y);
                 final Optional<Piece> piece = board.getPieceAt(pos);
                 if (piece.isPresent() && piece.get().getColor() == color
                         && !getLegalMoves(pos, board).isEmpty()) {
-                    return true;
+                    return false;
                 }
             }
         }
-        return false;
+        return true;
     }
 
     /**
@@ -470,7 +470,7 @@ public final class GameRules {
      * @return true in the event of checkmate
      */
     public static boolean isCheckmate(final int color, final ReadOnlyBoard board) {
-        return isKingInCheck(color, board) && !hasAnyLegalMove(color, board);
+        return isKingInCheck(color, board) && hasAnyLegalMove(color, board);
     }
 
     /**
@@ -481,7 +481,7 @@ public final class GameRules {
      * @return true in case of deadlock
      */
     public static boolean isStalemate(final int color, final ReadOnlyBoard board) {
-        return !isKingInCheck(color, board) && !hasAnyLegalMove(color, board);
+        return !isKingInCheck(color, board) && hasAnyLegalMove(color, board);
     }
 
     /**
@@ -540,8 +540,8 @@ public final class GameRules {
         int whiteMinorPieces = 0;
         int blackMinorPieces = 0;
 
-        for (int x = 0; x < BOARD_SIZE; x++) {
-            for (int y = 0; y < BOARD_SIZE; y++) {
+        for (int x = 0; x < Position.BOARD_SIZE; x++) {
+            for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Optional<Piece> pieceOpt = board.getPieceAt(new Position(x, y));
                 if (pieceOpt.isEmpty()) {
                     continue;

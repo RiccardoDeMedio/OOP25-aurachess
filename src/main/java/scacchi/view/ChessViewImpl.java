@@ -30,7 +30,6 @@ public final class ChessViewImpl implements ChessView {
 
     private static final Logger LOGGER = Logger.getLogger(ChessViewImpl.class.getName());
 
-    private static final int BOARD_SIZE = 8;
     private static final float SCREEN_PERCENTAGE = 0.50F;
 
     // Constants for colors
@@ -42,13 +41,11 @@ public final class ChessViewImpl implements ChessView {
     private transient Consumer<Position> clickListener;
     private final Map<Character, Image> imageCache = new HashMap<>();
 
-    private final JFrame frame;
-
     /**
      * Constructor: initializes the window settings and draws the chessboard.
      */
     public ChessViewImpl() {
-        frame = new JFrame("AuraChess");
+        final JFrame frame = new JFrame("AuraChess");
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
         final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -62,7 +59,7 @@ public final class ChessViewImpl implements ChessView {
         frame.setMinimumSize(new Dimension(minSize, minSize));
 
         final JPanel boardPanel = new JPanel();
-        boardPanel.setLayout(new GridLayout(BOARD_SIZE, BOARD_SIZE));
+        boardPanel.setLayout(new GridLayout(Position.BOARD_SIZE, Position.BOARD_SIZE));
 
         initializeBoard(boardPanel);
         frame.add(boardPanel);
@@ -71,8 +68,8 @@ public final class ChessViewImpl implements ChessView {
     }
 
     private void initializeBoard(final JPanel boardPanel) {
-        for (int row = 0; row < BOARD_SIZE; row++) {
-            for (int col = 0; col < BOARD_SIZE; col++) {
+        for (int row = 0; row < Position.BOARD_SIZE; row++) {
+            for (int col = 0; col < Position.BOARD_SIZE; col++) {
 
                 // Let's set the base color for this box.
                 final Color baseColor = ((row + col) % 2 == 0) ? lightColor : darkColor;
@@ -80,7 +77,7 @@ public final class ChessViewImpl implements ChessView {
                 // We pass the base color to the constructor of our custom button.
                 final ChessSquare square = new ChessSquare(baseColor);
 
-                final Position logicalPos = new Position(col, BOARD_SIZE - 1 - row);
+                final Position logicalPos = new Position(col, Position.BOARD_SIZE - 1 - row);
                 cells.put(logicalPos, square);
 
                 square.addActionListener(e -> {
@@ -188,7 +185,7 @@ public final class ChessViewImpl implements ChessView {
             final int whitePieceRow = 0;
             final int blackPieceRow = 7;
 
-            for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int i = 0; i < Position.BOARD_SIZE; i++) {
                 view.drawPiece(new Position(i, whitePawnRow), 'P');
                 view.drawPiece(new Position(i, blackPawnRow), 'p');
 
