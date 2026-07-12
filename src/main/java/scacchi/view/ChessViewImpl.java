@@ -1,5 +1,6 @@
 package scacchi.view;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import scacchi.model.board.Position;
 
 import javax.swing.JFrame;
@@ -22,6 +23,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 import javax.swing.WindowConstants;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 
 /**
  * Implementation of the chessboard's graphical interface.
@@ -31,6 +34,8 @@ public final class ChessViewImpl implements ChessView {
     private static final Logger LOGGER = Logger.getLogger(ChessViewImpl.class.getName());
 
     private static final float SCREEN_PERCENTAGE = 0.50F;
+    private final JButton undoButton = new JButton("Undo Move");
+    private final JButton saveButton = new JButton("Save Game");
 
     // Constants for colors
     private final Color lightColor = Color.decode("#eeeed2");
@@ -47,6 +52,7 @@ public final class ChessViewImpl implements ChessView {
     public ChessViewImpl() {
         final JFrame frame = new JFrame("AuraChess");
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.setLayout(new BorderLayout());
 
         final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         final int windowSize = (int) (screenSize.height * SCREEN_PERCENTAGE);
@@ -60,9 +66,15 @@ public final class ChessViewImpl implements ChessView {
 
         final JPanel boardPanel = new JPanel();
         boardPanel.setLayout(new GridLayout(Position.BOARD_SIZE, Position.BOARD_SIZE));
-
         initializeBoard(boardPanel);
-        frame.add(boardPanel);
+
+        final JPanel controlPanel = new JPanel();
+        controlPanel.setLayout(new FlowLayout());
+        controlPanel.add(undoButton);
+        controlPanel.add(saveButton);
+
+        frame.add(boardPanel, BorderLayout.CENTER);
+        frame.add(controlPanel, BorderLayout.SOUTH);
 
         frame.setVisible(true);
     }
@@ -128,6 +140,24 @@ public final class ChessViewImpl implements ChessView {
         }
     }
 
+    @Override
+    public void setUndoListener(final Runnable listener) {
+        undoButton.addActionListener(e -> {
+            if (listener != null) {
+                listener.run();
+            }
+        });
+    }
+
+    @Override
+    public void setSaveListener(final Runnable listener) {
+        saveButton.addActionListener(e -> {
+            if (listener != null) {
+                listener.run();
+            }
+        });
+    }
+
     /**
      * Retrieves the piece image from either the cache or the disk.
      *
@@ -176,22 +206,7 @@ public final class ChessViewImpl implements ChessView {
      */
     public static void main(final String[] args) {
         javax.swing.SwingUtilities.invokeLater(() -> {
-            final ChessView view = new ChessViewImpl();
-
-            final String whiteConfiguration = "RNBQKBNR";
-            final String blackConfiguration = "rnbqkbnr";
-            final int whitePawnRow = 1;
-            final int blackPawnRow = 6;
-            final int whitePieceRow = 0;
-            final int blackPieceRow = 7;
-
-            for (int i = 0; i < Position.BOARD_SIZE; i++) {
-                view.drawPiece(new Position(i, whitePawnRow), 'P');
-                view.drawPiece(new Position(i, blackPawnRow), 'p');
-
-                view.drawPiece(new Position(i, whitePieceRow), whiteConfiguration.charAt(i));
-                view.drawPiece(new Position(i, blackPieceRow), blackConfiguration.charAt(i));
-            }
+            final ChessView view = getChessView();
 
             view.setSquareClickListener(pos -> {
                 LOGGER.info("L'utente ha cliccato: x=" + pos.x() + ", y=" + pos.y());
@@ -205,7 +220,32 @@ public final class ChessViewImpl implements ChessView {
                 timer.setRepeats(false);
                 timer.start();
             });
+
+            view.setUndoListener(() -> LOGGER.info("L'utente ha cliccato il bottone: Undo Move"));
+
+            view.setSaveListener(() -> LOGGER.info("L'utente ha cliccato il bottone: Save Game"));
         });
+    }
+
+    @NonNull
+    private static ChessView getChessView() {
+        final ChessView view = new ChessViewImpl();
+
+        final String whiteConfiguration = "RNBQKBNR";
+        final String blackConfiguration = "rnbqkbnr";
+        final int whitePawnRow = 1;
+        final int blackPawnRow = 6;
+        final int whitePieceRow = 0;
+        final int blackPieceRow = 7;
+
+        for (int i = 0; i < Position.BOARD_SIZE; i++) {
+            view.drawPiece(new Position(i, whitePawnRow), 'P');
+            view.drawPiece(new Position(i, blackPawnRow), 'p');
+
+            view.drawPiece(new Position(i, whitePieceRow), whiteConfiguration.charAt(i));
+            view.drawPiece(new Position(i, blackPieceRow), blackConfiguration.charAt(i));
+        }
+        return view;
     }
 
     /**
