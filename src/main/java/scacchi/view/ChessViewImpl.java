@@ -3,10 +3,13 @@ package scacchi.view;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import scacchi.model.board.Position;
 
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JButton;
 import javax.imageio.ImageIO;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.WindowConstants;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import javax.swing.JOptionPane;
 import java.awt.GridLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -22,7 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-import javax.swing.WindowConstants;
+import javax.swing.ImageIcon;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 
@@ -34,8 +37,11 @@ public final class ChessViewImpl implements ChessView {
     private static final Logger LOGGER = Logger.getLogger(ChessViewImpl.class.getName());
 
     private static final float SCREEN_PERCENTAGE = 0.50F;
+    private static final float ICON_POPUP_PERCENTAGE = 0.80F;
+    private static final int DEFAULT_ICON_SIZE = 64;
     private final JButton undoButton = new JButton("Undo Move");
     private final JButton saveButton = new JButton("Save Game");
+    private final JFrame frame;
 
     // Constants for colors
     private final Color lightColor = Color.decode("#eeeed2");
@@ -50,7 +56,7 @@ public final class ChessViewImpl implements ChessView {
      * Constructor: initializes the window settings and draws the chessboard.
      */
     public ChessViewImpl() {
-        final JFrame frame = new JFrame("AuraChess");
+        frame = new JFrame("AuraChess");
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
 
@@ -75,8 +81,6 @@ public final class ChessViewImpl implements ChessView {
 
         frame.add(boardPanel, BorderLayout.CENTER);
         frame.add(controlPanel, BorderLayout.SOUTH);
-
-        frame.setVisible(true);
     }
 
     private void initializeBoard(final JPanel boardPanel) {
@@ -110,34 +114,42 @@ public final class ChessViewImpl implements ChessView {
 
     @Override
     public void drawPiece(final Position pos, final char fenChar) {
-        final ChessSquare btn = cells.get(pos);
-        if (btn != null) {
-            btn.setPieceImage(getImageForPiece(fenChar));
-        }
+        SwingUtilities.invokeLater(() -> {
+            final ChessSquare btn = cells.get(pos);
+            if (btn != null) {
+                btn.setPieceImage(getImageForPiece(fenChar));
+            }
+        });
     }
 
     @Override
     public void clearSquare(final Position pos) {
-        final ChessSquare btn = cells.get(pos);
-        if (btn != null) {
-            btn.setPieceImage(null);
-        }
+        SwingUtilities.invokeLater(() -> {
+            final ChessSquare btn = cells.get(pos);
+            if (btn != null) {
+                btn.setPieceImage(null);
+            }
+        });
     }
 
     @Override
     public void highlightSquare(final Position pos) {
-        final ChessSquare btn = cells.get(pos);
-        if (btn != null) {
-            btn.setBackground(highlightColor);
-        }
+        SwingUtilities.invokeLater(() -> {
+            final ChessSquare btn = cells.get(pos);
+            if (btn != null) {
+                btn.setBackground(highlightColor);
+            }
+        });
     }
 
     @Override
     public void resetBackground(final Position pos) {
-        final ChessSquare btn = cells.get(pos);
-        if (btn != null) {
-            btn.resetToDefaultColor();
-        }
+        SwingUtilities.invokeLater(() -> {
+            final ChessSquare btn = cells.get(pos);
+            if (btn != null) {
+                btn.resetToDefaultColor();
+            }
+        });
     }
 
     @Override
@@ -156,6 +168,11 @@ public final class ChessViewImpl implements ChessView {
                 listener.run();
             }
         });
+    }
+
+    @Override
+    public void showView() {
+        this.frame.setVisible(true);
     }
 
     /**
@@ -205,12 +222,21 @@ public final class ChessViewImpl implements ChessView {
      * @param args argomenti passati da riga di comando
      */
     public static void main(final String[] args) {
-        javax.swing.SwingUtilities.invokeLater(() -> {
+        SwingUtilities.invokeLater(() -> {
             final ChessView view = getChessView();
+            view.showView();
 
             view.setSquareClickListener(pos -> {
                 LOGGER.info("L'utente ha cliccato: x=" + pos.x() + ", y=" + pos.y());
                 view.highlightSquare(pos);
+
+                if (pos.y() == Position.BOARD_SIZE - 1 || pos.y() == 0) {
+                    final char choice = view.askPromotionChoice(true);
+                    LOGGER.info("L'utente ha scelto la promozione: " + choice);
+
+                    // Disegniamo il pezzo scelto
+                    view.drawPiece(pos, choice);
+                }
 
                 // Dopo 1 secondo pulisce il pezzo E ripristina lo sfondo
                 final javax.swing.Timer timer = new javax.swing.Timer(1000, e -> {
@@ -248,6 +274,75 @@ public final class ChessViewImpl implements ChessView {
         return view;
     }
 
+    @Override
+    public char askPromotionChoice(final boolean isWhite) {
+        // We select FEN characters based on color.
+        final char q = isWhite ? 'Q' : 'q';
+        final char r = isWhite ? 'R' : 'r';
+        final char b = isWhite ? 'B' : 'b';
+        final char n = isWhite ? 'N' : 'n';
+
+        // We create the array of ImageIcon objects.
+        final Object[] options = {
+                createScaledIcon(q),
+                createScaledIcon(r),
+                createScaledIcon(b),
+                createScaledIcon(n),
+        };
+
+        final int choice = JOptionPane.showOptionDialog(
+                frame,
+                "Scegli il pezzo per la promozione:",
+                "Promozione",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.PLAIN_MESSAGE, // PLAIN_MESSAGE removes the question mark icon on the left.
+                null,
+                options,
+                options[0]
+        );
+
+        return switch (choice) {
+            case 1 -> isWhite ? 'R' : 'r';
+            case 2 -> isWhite ? 'B' : 'b';
+            case 3 -> isWhite ? 'N' : 'n';
+            default -> isWhite ? 'Q' : 'q';
+        };
+    }
+
+    /**
+     * Helper method that uses getImageForPiece and scales the image for the pop-up.
+     *
+     * @param fenChar the fenChar of the piece we want the image
+     * @return the scaled image of the piece we need
+     */
+    private ImageIcon createScaledIcon(final char fenChar) {
+        final Image img = getImageForPiece(fenChar);
+        if (img == null) {
+            // Returns an empty icon in case of an error to prevent a crash.
+            return new ImageIcon();
+        }
+
+        // We set a safety value.
+        int iconSize = DEFAULT_ICON_SIZE;
+
+        // We dynamically calculate the size based on a box.
+        if (!cells.isEmpty()) {
+            // We select any square from the chessboard.
+            final ChessSquare sampleSquare = cells.values().iterator().next();
+            final int squareWidth = sampleSquare.getWidth();
+
+            // If the width is > 0 (meaning the window has already been rendered on screen)
+            // We set the large icon to a percentual of the size of the box.
+            if (squareWidth > 0) {
+                iconSize = (int) (squareWidth * ICON_POPUP_PERCENTAGE);
+            }
+        }
+
+        // We scale the image using the dynamic value.
+        final Image scaledImg = img.getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH);
+        return new ImageIcon(scaledImg);
+    }
+
     /**
      * A custom JButton capable of rendering its own image and remembering its original color.
      */
@@ -256,7 +351,7 @@ public final class ChessViewImpl implements ChessView {
         private static final long serialVersionUID = 1L;
         private static final int PADDING = 6;
 
-        // Memoria del colore originale
+        // Memory of the original color.
         private final Color defaultBg;
         private transient Image pieceImage;
 
