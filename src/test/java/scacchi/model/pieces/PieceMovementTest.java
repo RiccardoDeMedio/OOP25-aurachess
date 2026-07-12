@@ -1,4 +1,4 @@
-package scacchi.model.board;
+package scacchi.model.pieces;
 
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -7,7 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import scacchi.model.pieces.Piece;
+import scacchi.model.board.Board;
+import scacchi.model.board.Position;
 
 /**
  * Comprehensive test to verify the movement and captures of all pieces.
