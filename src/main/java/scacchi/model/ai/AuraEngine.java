@@ -1,4 +1,4 @@
-/*package scacchi.model.ai;
+package scacchi.model.ai;
 import scacchi.model.gamerules.GameRules;
 
 import java.util.ArrayList;
@@ -195,7 +195,7 @@ public class AuraEngine {
         for (PlacedPiece piece : allPieces) {
             int pieceValue = 0;
             if (piece != null) {
-                if ((piece.piece().getType() == 10 || piece.piece().getType() == 11) /*&& board.isEndgame()*//* ) { // If the piece is a king, and the game is near the end, we use the modified values.
+                if ((piece.piece().getType() == 10 || piece.piece().getType() == 11) /*&& board.isEndgame()*/ ) { // If the piece is a king, and the game is near the end, we use the modified values.
                     pieceValue = piece.piece().getValue() + pieceTable[piece.piece().getType() + endTableSpots][tableConversion(piece.position())];
                 }
                 else {
@@ -344,4 +344,4 @@ public class AuraEngine {
         return nodesVisited;
     }
 }
-*/
+
