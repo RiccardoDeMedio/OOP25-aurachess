@@ -25,7 +25,7 @@ public final class Board implements ReadOnlyBoard {
 
     private char activeColor = 'w';         // 'w' for white, 'b' for black
     private String castlingRights = "KQkq"; // Initial castling rights
-    private String enPassantTarget = "-";   // Target square en passant (e.g. "e3")
+    private String enPassantTarget = "-";   // Target square en passant (es "e3")
     private int halfmoveClock;              // Counter for the 50-move rule
     private int fullmoveNumber = 1;         // Current turn number
 
@@ -34,6 +34,9 @@ public final class Board implements ReadOnlyBoard {
      */
     public Board() {
         this.state = new HashMap<>();
+    }
+    public Board(final Board other) {
+        this.state = new HashMap<>(other.state);
     }
 
     @Override
@@ -49,6 +52,26 @@ public final class Board implements ReadOnlyBoard {
     @Override
     public char getActiveColor() {
         return activeColor;
+    }
+
+    @Override
+    public String getCastlingRights() {
+        return this.castlingRights;
+    }
+
+    @Override
+    public String getEnPassantTarget() {
+        return this.enPassantTarget;
+    }
+
+    @Override
+    public int getHalfmoveClock() {
+        return this.halfmoveClock;
+    }
+
+    @Override
+    public int getFullmoveNumber() {
+        return this.fullmoveNumber;
     }
 
     /**
@@ -302,6 +325,15 @@ public final class Board implements ReadOnlyBoard {
      */
     public void setFullmoveNumber(final int fullmoveNumber) {
         this.fullmoveNumber = fullmoveNumber;
+    }
+
+    /**
+     * Directly removes a piece from the chessboard, useful for promotion and for the en passant.
+     *
+     * @param pos the position from which to remove the piece
+     */
+    public void removePiece(final Position pos) {
+        state.remove(pos);
     }
 
 }

@@ -1,24 +1,24 @@
-package scacchi.model.ai;
+/*package scacchi.model.ai;
+import scacchi.model.gamerules.GameRules;
 
-import java.security.spec.InvalidParameterSpecException;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.pieces.Piece;
 public class AuraEngine {
+    private final int black = -1;
+    private long nodesVisited = 0;
+    private final int white = 1;
     private final int maxDepth;
-    private List<Integer> allEvalutations = new LinkedList<Integer>();
+    private List<Integer> allEvalutations = new ArrayList<Integer>();
+    public record PlacedPiece(Piece piece, Position position) {}
+    public record Move(Position startPosition, Position finalPosition) {}
     private final int pieceTable[][] = { // To assign a value to each piece for each square (As 21/05/2026, most of the values are to be updated and corrected) 
         { // White Pawn
-            0,   0,   0,   0,   0,   0,   0,   0,   // 8 - Impossible for pawns
-            50,  50,  50,  50,  50,  50,  50,  50,  // 7
-            10,  10,  20,  30,  30,  20,  10,  10,  // 6
-            5,   5,  10,  25,  25,  10,   5,   5,   // 5
-            0,   0,   0,  20,  20,   0,   0,   0,   // 4
-            5,  -5, -10,   0,   0, -10,  -5,   5,   // 3
-            5,  10,  10, -20, -20,  10,  10,   5,   // 2 
-            0,   0,   0,   0,   0,   0,   0,   0    // 1 - Impossible for pawns
+            0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25, 10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0 
         },
         { // Black Pawn
             0,   0,   0,   0,   0,   0,   0,   0,   // 1 - Impossible for pawns
@@ -95,7 +95,7 @@ public class AuraEngine {
             -10,   0,   0,   0,   0,   0,   0, -10,
             -10,   0,   5,   5,   5,   5,   0, -10,
             -5,   0,   5,   5,   5,   5,   0,  -5,
-             0,   0,   5,   5,   5,   5,   0,  -5,
+            0,   0,   5,   5,   5,   5,   0,  -5,
             -10,   5,   5,   5,   5,   5,   0, -10,
             -10,   0,   5,   0,   0,   0,   0, -10,
             -20, -10, -10,  -5,  -5, -10, -10, -20 
@@ -155,13 +155,13 @@ public class AuraEngine {
 
     public AuraEngine(int maxDepth) {
         this.maxDepth = maxDepth;
-        this.allEvalutations = new LinkedList<Integer>();
+        this.allEvalutations = new ArrayList<Integer>();
     }
     public int getDepth() {
         return maxDepth;
     }
-    private List<Position> getAllPosition() {
-        List<Position> allPosition = new LinkedList<>();
+    private static List<Position> buildAllPosition() {
+        List<Position> allPosition = new ArrayList<>();
         for (int x = 0; x < 8; x++) {
             for (int y = 0; y < 8; y++) {
                 allPosition.add(new Position(x, y));
@@ -169,12 +169,15 @@ public class AuraEngine {
         }
         return allPosition;
     }
-    private List<Piece> getAllPieces(Board board) {
-        List<Piece> allPieces = new LinkedList<>();
-        List<Position> allPosition = getAllPosition();
+
+    private static final List<Position> ALL_POSITIONS = buildAllPosition();
+
+    private List<PlacedPiece> getAllPieces(Board board) {
+        List<PlacedPiece> allPieces = new ArrayList<>();
+        List<Position> allPosition = ALL_POSITIONS;
         for (Position position : allPosition) {
             board.getPieceAt(position).ifPresent(piece -> {
-                allPieces.add(piece);
+                allPieces.add(new PlacedPiece(piece, position));
             });
         }
         return allPieces;
@@ -188,37 +191,42 @@ public class AuraEngine {
 
     private int evaluateBoard(Board board) {
         int totalScore = 0;
-        List<Piece> allPieces = getAllPieces(board);
-        for (Piece piece : allPieces) {
+        List<PlacedPiece> allPieces = getAllPieces(board);
+        for (PlacedPiece piece : allPieces) {
             int pieceValue = 0;
             if (piece != null) {
-                if (piece.getType() == 11 || piece.getType() == 12 && board.isEndgame()) { // If the piece is a king, and the game is near the end, we use the modified values.
-                    pieceValue = piece.getValue() + pieceTable[piece.getType() + endTableSpots][tableConversion(piece.getPosition())];
+                if ((piece.piece().getType() == 10 || piece.piece().getType() == 11) /*&& board.isEndgame()*//* ) { // If the piece is a king, and the game is near the end, we use the modified values.
+                    pieceValue = piece.piece().getValue() + pieceTable[piece.piece().getType() + endTableSpots][tableConversion(piece.position())];
                 }
                 else {
-                    pieceValue = piece.getValue() + pieceTable[piece.getType()][tableConversion(piece.getPosition())]; // Otherwise, we use the normal values.
+                    pieceValue = piece.piece().getValue() + pieceTable[piece.piece().getType()][tableConversion(piece.position())]; // Otherwise, we use the normal values.
                 }
-                totalScore = totalScore + pieceValue * piece.getColor(); // if the piece is white (1), we add the value, if it's black (-1), we subtract the value.
+                totalScore = totalScore + pieceValue * piece.piece().getColor(); // if the piece is white (1), we add the value, if it's black (-1), we subtract the value.
             }
         }
-        if (board.isBlackinCheck()) {
-                totalScore = totalScore + 50; // If black is in check, we subtract 50 points from the score.
+        if (GameRules.isKingInCheck(black, board)) {
+                totalScore = totalScore + 50; // If black is in check, we add 50 points from the score.
             }
-        else if (board.isWhiteinCheck()) {
-                totalScore = totalScore - 50; // If white is in check, we add 50 points to the score.
+        else if (GameRules.isKingInCheck(white, board)) {
+                totalScore = totalScore - 50; // If white is in check, we substract 50 points to the score.
             }
         return totalScore;
     }
 
     private int minmaxing_alfa_beta_pruning(Board board, int depht, int alfa, int beta, boolean isMaximizingPlayer) {
-        if (board.isCheckmate() || depht < 1) {
+        nodesVisited++;
+        if (depht < 1) {
             return evaluateBoard(board);
         }
-        List<Move> allPossibleMoves = board.getAllPossibleMoves(); 
+        List<Move> allPossibleMoves = getAllPossibleMoves(board, isMaximizingPlayer);
+        if (allPossibleMoves.isEmpty()) {
+            return evaluateBoard(board); // matto o stallo
+        }
         if (isMaximizingPlayer) {
             int maxEval = Integer.MIN_VALUE; //Local variable
             for (Move move : allPossibleMoves) {
-                Board newBoard = board.makeMove(move);
+                Board newBoard = new Board(board);
+                newBoard.movePiece(move.startPosition, move.finalPosition);
                 int eval = minmaxing_alfa_beta_pruning(newBoard, depht-1, alfa, beta, !isMaximizingPlayer);
                 maxEval = Math.max(eval, maxEval);
                 alfa = Math.max(alfa, eval);
@@ -231,7 +239,8 @@ public class AuraEngine {
         else {
             int minEval = Integer.MAX_VALUE; //Local variable
             for (Move move : allPossibleMoves) {
-                Board newBoard = board.makeMove(move);
+                Board newBoard = new Board(board);
+                newBoard.movePiece(move.startPosition, move.finalPosition);
                 int eval = minmaxing_alfa_beta_pruning(newBoard, depht-1, alfa, beta, !isMaximizingPlayer);
                 minEval = Math.min(eval, minEval);
                 beta = Math.min(beta, eval);
@@ -243,7 +252,7 @@ public class AuraEngine {
         }
     }
 
-    public int findBestMove(Board board, boolean isWhite) {
+    public Move findBestMove(Board board, boolean isWhite) {
         int bestScore = 0;
         if (isWhite) {
             bestScore = Integer.MIN_VALUE; //maximazing player
@@ -252,11 +261,12 @@ public class AuraEngine {
             bestScore = Integer.MAX_VALUE;
         }
         Move bestMove = null;
-        List<Move> allPossibleMoves = board.getAllPossibleMoves();
+        List<Move> allPossibleMoves = getAllPossibleMoves(board, isWhite);
 
         for (Move move: allPossibleMoves) {
-            Board newBoard = board.makeMove(move);
-            int boardScore = minmaxing_alfa_beta_pruning(newBoard, maxDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, isWhite);
+            Board newBoard = new Board(board);
+            newBoard.movePiece(move.startPosition, move.finalPosition);
+            int boardScore = minmaxing_alfa_beta_pruning(newBoard, maxDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, !isWhite);
             if (isWhite && boardScore > bestScore) {
                 bestScore = boardScore;
                 bestMove = move;
@@ -270,10 +280,11 @@ public class AuraEngine {
     }
     
     private int calculateLoss(Board board, Move move, boolean isWhite) { //Centipawn calculated as Chess.com
-        Board newBoard = board.makeMove(move);
+        Board newBoard = new Board(board);
+        newBoard.movePiece(move.startPosition, move.finalPosition);
         Move bestMove = findBestMove(board, isWhite);
-        Board bestBoard = board.makeMove(bestMove);
-        bestBoard.make(bestMove);
+        Board bestBoard = new Board(board);
+        bestBoard.movePiece(bestMove.startPosition, bestMove.finalPosition);
         int evaluationPlayerMove = evaluateBoard(newBoard);
         int evaluationBestMove = evaluateBoard(bestBoard);
         int loss = 0;
@@ -285,6 +296,7 @@ public class AuraEngine {
             loss = evaluationPlayerMove - evaluationBestMove;
         }
         loss = Math.max(loss, minimum); 
+        return loss;
     }
 
     public int calculatePrecision(Board board, Move move, boolean isWhite) {
@@ -303,4 +315,33 @@ public class AuraEngine {
         averagePrecision = totalPrecision / allEvalutations.size();
         return averagePrecision;
     }
+    private List<Move> getAllPossibleMoves(Board board, boolean isWhite) {
+        List<PlacedPiece> allPieces = getAllPieces(board);
+        List<Move> allPossibleMoves = new ArrayList<>();
+        for (PlacedPiece placedPiece : allPieces) {
+            if (isWhite) {
+                if (placedPiece.piece.getColor() == 1) {
+                    Set<Position> finalPositions = GameRules.getLegalMoves(placedPiece.position, board);
+                    for (Position finalPosition : finalPositions) {
+                        Move move = new Move(placedPiece.position, finalPosition);
+                        allPossibleMoves.add(move);
+                    }
+                }
+            }
+            else {
+                if (placedPiece.piece.getColor() == -1) {
+                    Set<Position> finalPositions = GameRules.getLegalMoves(placedPiece.position, board);
+                    for (Position finalPosition : finalPositions) {
+                        Move move = new Move(placedPiece.position, finalPosition);
+                        allPossibleMoves.add(move);
+                    }
+                }
+            }
+        }
+        return allPossibleMoves;
+    }
+    public long getNodesVisited() {
+        return nodesVisited;
+    }
 }
+*/
