@@ -14,15 +14,15 @@ public final class Knight extends AbstractSteppingPiece {
     /**
      * Constructor.
      *
-     * @param color 1 for white, -1 for black
+     * @param color the color of the piece
      */
-    public Knight(final int color) {
+    public Knight(final PieceColor color) {
         super(color);
     }
 
     @Override
     public char getFenChar() {
-        return this.getColor() == 1 ? 'N' : 'n';
+        return this.getColor() == PieceColor.WHITE ? 'N' : 'n';
     }
 
     @Override

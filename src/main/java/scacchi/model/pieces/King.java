@@ -8,15 +8,15 @@ public final class King extends AbstractSteppingPiece {
     /**
      * Constructor.
      *
-     * @param color 1 for white, -1 for black
+     * @param color the color of the piece
      */
-    public King(final int color) {
+    public King(final PieceColor color) {
         super(color);
     }
 
     @Override
     public char getFenChar() {
-        return this.getColor() == 1 ? 'K' : 'k';
+        return this.getColor() == PieceColor.WHITE ? 'K' : 'k';
     }
 
     @Override

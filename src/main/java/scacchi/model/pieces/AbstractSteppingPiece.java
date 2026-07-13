@@ -11,19 +11,19 @@ import scacchi.model.board.ReadOnlyBoard;
  */
 public abstract class AbstractSteppingPiece implements Piece {
 
-    private final int color;
+    private final PieceColor color;
 
     /**
      * Constructor.
      *
-     * @param color 1 for white, -1 for black
+     * @param color the color of the piece
      */
-    public AbstractSteppingPiece(final int color) {
+    public AbstractSteppingPiece(final PieceColor color) {
         this.color = color;
     }
 
     @Override
-    public final int getColor() {
+    public final PieceColor getColor() {
         return this.color;
     }
 
