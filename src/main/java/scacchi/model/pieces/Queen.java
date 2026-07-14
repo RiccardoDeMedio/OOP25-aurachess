@@ -8,15 +8,15 @@ public final class Queen extends AbstractSlidingPiece {
     /**
      * Constructor.
      *
-     * @param color 1 for white, -1 for black
+     * @param color the color of the piece
      */
-    public Queen(final int color) {
+    public Queen(final PieceColor color) {
         super(color);
     }
 
     @Override
     public char getFenChar() {
-        return this.getColor() == 1 ? 'Q' : 'q';
+        return this.getColor() == PieceColor.WHITE ? 'Q' : 'q';
     }
 
     @Override

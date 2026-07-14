@@ -11,14 +11,12 @@ import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.board.ReadOnlyBoard;
 import scacchi.model.pieces.Piece;
+import scacchi.model.pieces.PieceColor;
 
 /**
  * It manages the rules of the game of chess.
  */
 public final class GameRules {
-
-    private static final int WHITE = 1;
-
     private static final int WHITE_PROMOTION_ROW = 7;
     private static final int BLACK_PROMOTION_ROW = 0;
 
@@ -52,6 +50,16 @@ public final class GameRules {
      * Private constructor to hide the default constructor.
      */
     private GameRules() {
+    }
+
+    /**
+     * Helper method to get the opposite color.
+     *
+     * @param color the current color
+     * @return the opposite color
+     */
+    private static PieceColor getOppositeColor(final PieceColor color) {
+        return color == PieceColor.WHITE ? PieceColor.BLACK : PieceColor.WHITE;
     }
 
     /**
@@ -101,7 +109,7 @@ public final class GameRules {
      * @param board the current board
      * @return the king's position
      */
-    public static Optional<Position> findKing(final int color, final ReadOnlyBoard board) {
+    public static Optional<Position> findKing(final PieceColor color, final ReadOnlyBoard board) {
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position pos = new Position(x, y);
@@ -124,7 +132,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if the cell is attacked
      */
-    public static boolean isSquareAttacked(final Position target, final int byColor, final ReadOnlyBoard board) {
+    public static boolean isSquareAttacked(final Position target, final PieceColor byColor, final ReadOnlyBoard board) {
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position from = new Position(x, y);
@@ -171,8 +179,8 @@ public final class GameRules {
      * @param target target position to attack
      * @return true if the pawn attacks the square
      */
-    private static boolean pawnAttacks(final int color, final Position from, final Position target) {
-        final int direction = color == WHITE ? 1 : -1;
+    private static boolean pawnAttacks(final PieceColor color, final Position from, final Position target) {
+        final int direction = color == PieceColor.WHITE ? 1 : -1;
         return target.y() == from.y() + direction && Math.abs(target.x() - from.x()) == 1;
     }
 
@@ -241,9 +249,9 @@ public final class GameRules {
      * @param board the current board
      * @return true if the king is in check
      */
-    public static boolean isKingInCheck(final int color, final ReadOnlyBoard board) {
+    public static boolean isKingInCheck(final PieceColor color, final ReadOnlyBoard board) {
         final Optional<Position> king = findKing(color, board);
-        return king.isPresent() && isSquareAttacked(king.get(), -color, board);
+        return king.isPresent() && isSquareAttacked(king.get(), getOppositeColor(color), board);
     }
 
     /**
@@ -272,21 +280,20 @@ public final class GameRules {
      * @param board the current board
      * @return true if it can castle
      */
-    public static boolean canCastleKingside(final int color, final ReadOnlyBoard board) {
-        if (board.getCastlingRights().indexOf(color == WHITE ? 'K' : 'k') < 0) {
+    public static boolean canCastleKingside(final PieceColor color, final ReadOnlyBoard board) {
+        if (board.getCastlingRights().indexOf(color == PieceColor.WHITE ? 'K' : 'k') < 0) {
             return false;
         }
-        final int row = color == WHITE ? 0 : 7;
+        final int row = color == PieceColor.WHITE ? 0 : 7;
         final Position kingPos = new Position(KING_START_X, row);
         final Position rookPos = new Position(ROOK_KINGSIDE_START_X, row);
         final Position bridge1 = new Position(BRIDGE_KINGSIDE_1_X, row);
         final Position bridge2 = new Position(BRIDGE_KINGSIDE_2_X, row);
-
         return isRookInPlace(rookPos, color, board)
                 && board.isEmpty(bridge1) && board.isEmpty(bridge2)
-                && !isSquareAttacked(kingPos, -color, board)
-                && !isSquareAttacked(bridge1, -color, board)
-                && !isSquareAttacked(bridge2, -color, board);
+                && !isSquareAttacked(kingPos, getOppositeColor(color), board)
+                && !isSquareAttacked(bridge1, getOppositeColor(color), board)
+                && !isSquareAttacked(bridge2, getOppositeColor(color), board);
     }
 
     /**
@@ -296,22 +303,21 @@ public final class GameRules {
      * @param board the current board
      * @return true if it can castle
      */
-    public static boolean canCastleQueenside(final int color, final ReadOnlyBoard board) {
-        if (board.getCastlingRights().indexOf(color == WHITE ? 'Q' : 'q') < 0) {
+    public static boolean canCastleQueenside(final PieceColor color, final ReadOnlyBoard board) {
+        if (board.getCastlingRights().indexOf(color == PieceColor.WHITE ? 'Q' : 'q') < 0) {
             return false;
         }
-        final int row = color == WHITE ? 0 : 7;
+        final int row = color == PieceColor.WHITE ? 0 : 7;
         final Position kingPos = new Position(KING_START_X, row);
         final Position rookPos = new Position(ROOK_QUEENSIDE_START_X, row);
         final Position bridge1 = new Position(BRIDGE_QUEENSIDE_1_X, row);
         final Position bridge2 = new Position(BRIDGE_QUEENSIDE_2_X, row);
         final Position bridge3 = new Position(BRIDGE_QUEENSIDE_3_X, row);
-
         return isRookInPlace(rookPos, color, board)
                 && board.isEmpty(bridge1) && board.isEmpty(bridge2) && board.isEmpty(bridge3)
-                && !isSquareAttacked(kingPos, -color, board)
-                && !isSquareAttacked(bridge1, -color, board)
-                && !isSquareAttacked(bridge2, -color, board);
+                && !isSquareAttacked(kingPos, getOppositeColor(color), board)
+                && !isSquareAttacked(bridge1, getOppositeColor(color), board)
+                && !isSquareAttacked(bridge2, getOppositeColor(color), board);
     }
 
     /**
@@ -322,7 +328,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if present
      */
-    private static boolean isRookInPlace(final Position rookPos, final int color, final ReadOnlyBoard board) {
+    private static boolean isRookInPlace(final Position rookPos, final PieceColor color, final ReadOnlyBoard board) {
         return board.getPieceAt(rookPos)
                 .filter(p -> Character.toLowerCase(p.getFenChar()) == 'r' && p.getColor() == color)
                 .isPresent();
@@ -352,8 +358,8 @@ public final class GameRules {
      * @param movingColor the color making the move
      * @return the position of the captured pawn
      */
-    public static Position enPassantCapturedPawnPosition(final Position to, final int movingColor) {
-        final int capturedRow = movingColor == WHITE ? to.y() - 1 : to.y() + 1;
+    public static Position enPassantCapturedPawnPosition(final Position to, final PieceColor movingColor) {
+        final int capturedRow = movingColor == PieceColor.WHITE ? to.y() - 1 : to.y() + 1;
         return new Position(to.x(), capturedRow);
     }
 
@@ -368,7 +374,7 @@ public final class GameRules {
         if (Character.toLowerCase(piece.getFenChar()) != 'p') {
             return false;
         }
-        final int promotionRow = piece.getColor() == WHITE ? WHITE_PROMOTION_ROW : BLACK_PROMOTION_ROW;
+        final int promotionRow = piece.getColor() == PieceColor.WHITE ? WHITE_PROMOTION_ROW : BLACK_PROMOTION_ROW;
         return to.y() == promotionRow;
     }
 
@@ -381,10 +387,10 @@ public final class GameRules {
      * @param color player color
      * @return normalized promotion character
      */
-    public static char sanitizePromotionChoice(final char choice, final int color) {
+    public static char sanitizePromotionChoice(final char choice, final PieceColor color) {
         final char lower = Character.toLowerCase(choice);
         final char normalized = lower == 'q' || lower == 'r' || lower == 'b' || lower == 'n' ? lower : 'q';
-        return color == WHITE ? Character.toUpperCase(normalized) : normalized;
+        return color == PieceColor.WHITE ? Character.toUpperCase(normalized) : normalized;
     }
 
     /**
@@ -403,20 +409,18 @@ public final class GameRules {
             return legalMoves;
         }
         final Piece piece = pieceOpt.get();
-        final int color = piece.getColor();
+        final PieceColor color = piece.getColor();
         final char type = Character.toLowerCase(piece.getFenChar());
-
         for (final Position dest : piece.getValidMoves(from, board)) {
             if (wouldLeaveKingInCheck(from, dest, null, board)) {
                 legalMoves.add(dest);
             }
         }
-
         if (type == 'p') {
             final Optional<Position> enPassantTarget = getEnPassantTarget(board);
             if (enPassantTarget.isPresent()) {
                 final Position ep = enPassantTarget.get();
-                final int direction = color == WHITE ? 1 : -1;
+                final int direction = color == PieceColor.WHITE ? 1 : -1;
                 if (ep.y() == from.y() + direction && Math.abs(ep.x() - from.x()) == 1) {
                     final Position capturedPawn = enPassantCapturedPawnPosition(ep, color);
                     if (wouldLeaveKingInCheck(from, ep, capturedPawn, board)) {
@@ -425,9 +429,8 @@ public final class GameRules {
                 }
             }
         }
-
         if (type == 'k') {
-            final int row = color == WHITE ? 0 : 7;
+            final int row = color == PieceColor.WHITE ? 0 : 7;
             if (from.equals(new Position(KING_START_X, row))) {
                 if (canCastleKingside(color, board)) {
                     legalMoves.add(new Position(KINGSIDE_DEST_X, row));
@@ -437,7 +440,6 @@ public final class GameRules {
                 }
             }
         }
-
         return legalMoves;
     }
 
@@ -448,7 +450,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if the player has no legal moves available
      */
-    public static boolean hasAnyLegalMove(final int color, final ReadOnlyBoard board) {
+    public static boolean hasAnyLegalMove(final PieceColor color, final ReadOnlyBoard board) {
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position pos = new Position(x, y);
@@ -469,7 +471,7 @@ public final class GameRules {
      * @param board the current board
      * @return true in the event of checkmate
      */
-    public static boolean isCheckmate(final int color, final ReadOnlyBoard board) {
+    public static boolean isCheckmate(final PieceColor color, final ReadOnlyBoard board) {
         return isKingInCheck(color, board) && hasAnyLegalMove(color, board);
     }
 
@@ -480,7 +482,7 @@ public final class GameRules {
      * @param board the current board
      * @return true in case of deadlock
      */
-    public static boolean isStalemate(final int color, final ReadOnlyBoard board) {
+    public static boolean isStalemate(final PieceColor color, final ReadOnlyBoard board) {
         return !isKingInCheck(color, board) && hasAnyLegalMove(color, board);
     }
 
@@ -539,7 +541,6 @@ public final class GameRules {
     public static boolean isInsufficientMaterial(final ReadOnlyBoard board) {
         int whiteMinorPieces = 0;
         int blackMinorPieces = 0;
-
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Optional<Piece> pieceOpt = board.getPieceAt(new Position(x, y));
@@ -551,7 +552,7 @@ public final class GameRules {
                     return false;
                 }
                 if (type == 'b' || type == 'n') {
-                    if (pieceOpt.get().getColor() == WHITE) {
+                    if (pieceOpt.get().getColor() == PieceColor.WHITE) {
                         whiteMinorPieces++;
                     } else {
                         blackMinorPieces++;

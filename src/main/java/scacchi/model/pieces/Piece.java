@@ -19,11 +19,11 @@ public interface Piece {
     char getFenChar();
 
     /**
-     * Returns the color of the piece.
+     * Gets the color of the piece.
      *
-     * @return '1' for white, '-1' for black
+     * @return the color of the piece
      */
-    int getColor();
+    PieceColor getColor();
 
     /**
      * Calculates all valid moves for this piece given its current position and the board state.

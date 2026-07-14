@@ -10,6 +10,7 @@ import scacchi.model.board.Position;
 import scacchi.model.board.SaveManager;
 import scacchi.model.pieces.Piece;
 import scacchi.model.pieces.PieceFactory;
+import scacchi.model.pieces.PieceColor;
 
 /**
  * Manages game events: square selection, move validation and execution
@@ -19,8 +20,6 @@ import scacchi.model.pieces.PieceFactory;
 public final class Controller {
 
     private static final char DEFAULT_PROMOTION_CHOICE = 'q';
-    private static final int WHITE = 1;
-    private static final int BLACK = -1;
     private static final int KINGSIDE_ROOK_COLUMN = 7;
     private static final int QUEENSIDE_ROOK_COLUMN = 0;
     private static final int KINGSIDE_KING_DEST_COLUMN = 6;
@@ -107,7 +106,7 @@ public final class Controller {
      * @return the state of the current game
      */
     public GameStatus getGameStatus() {
-        final int activeColor = board.getActiveColor() == 'w' ? WHITE : BLACK;
+        final PieceColor activeColor = board.getActiveColor() == 'w' ? PieceColor.WHITE : PieceColor.BLACK;
 
         if (GameRules.isCheckmate(activeColor, board)) {
             return GameStatus.CHECKMATE;
@@ -240,7 +239,7 @@ public final class Controller {
             return MoveOutcome.INVALID_SELECTION;
         }
         final Piece movingPiece = movingPieceOpt.get();
-        final int movingColor = movingPiece.getColor();
+        final PieceColor movingColor = movingPiece.getColor();
         final char movingType = Character.toLowerCase(movingPiece.getFenChar());
         final boolean isKing = movingType == 'k';
         final boolean isPawn = movingType == 'p';
@@ -278,13 +277,13 @@ public final class Controller {
         }
 
         // I update the match metadata using the board's dedicated setters.
-        board.setActiveColor(movingColor == WHITE ? 'b' : 'w');
+        board.setActiveColor(movingColor == PieceColor.WHITE ? 'b' : 'w');
         board.setCastlingRights(updateCastlingRights(castlingRightsBefore, from, to, movingColor, isCastling));
         board.setEnPassantTarget(isPawnDoubleStep
                 ? GameRules.positionToAlgebraic(new Position(from.x(), (from.y() + to.y()) / 2))
                 : "-");
         board.setHalfmoveClock(isPawnMoveOrCapture(isPawn, isCapture) ? 0 : halfmoveClockBefore + 1);
-        board.setFullmoveNumber(movingColor == BLACK ? fullmoveNumberBefore + 1 : fullmoveNumberBefore);
+        board.setFullmoveNumber(movingColor == PieceColor.BLACK ? fullmoveNumberBefore + 1 : fullmoveNumberBefore);
 
         return MoveOutcome.MOVE_PLAYED;
     }
@@ -298,10 +297,10 @@ public final class Controller {
      * this does not add new entries to the undo history, as the move was already recorded once by movePiece for the king.
      *
      * @param kingDestination the square the king moved to, used to determine if the castling is kingside or queenside
-     * @param color the color of the player performing the castling (es. 1 for White, -1 for Black)
+     * @param color the color of the player performing the castling
      */
-    private void moveCastlingRook(final Position kingDestination, final int color) {
-        final int row = color == WHITE ? 0 : BLACK_HOME_ROW;
+    private void moveCastlingRook(final Position kingDestination, final PieceColor color) {
+        final int row = color == PieceColor.WHITE ? 0 : BLACK_HOME_ROW;
         if (kingDestination.x() == KINGSIDE_KING_DEST_COLUMN) {
             relocateRook(new Position(KINGSIDE_ROOK_COLUMN, row), new Position(KINGSIDE_ROOK_DEST_COLUMN, row));
         } else if (kingDestination.x() == QUEENSIDE_KING_DEST_COLUMN) {
@@ -332,17 +331,17 @@ public final class Controller {
      * @param rightsBefore the castling rights string prior to the move (es. "KQkq" or "-")
      * @param from the starting square of the move, used to check if a rook moved away
      * @param to the destination square of the move, used to check if a rook was captured
-     * @param movingColor the color of the player executing the move (es. 1 for White, -1 for Black)
+     * @param movingColor the color of the player executing the move
      * @param movedIsKing true if the moving piece is a king, which revokes both castling rights for that color
      * @return the updated castling rights string, or "-" if neither player can castle anymore
      */
     private String updateCastlingRights(final String rightsBefore, final Position from, final Position to,
-            final int movingColor, final boolean movedIsKing) {
+            final PieceColor movingColor, final boolean movedIsKing) {
         String rights = rightsBefore;
 
         if (movedIsKing) {
-            final char kingSide = movingColor == WHITE ? 'K' : 'k';
-            final char queenSide = movingColor == WHITE ? 'Q' : 'q';
+            final char kingSide = movingColor == PieceColor.WHITE ? 'K' : 'k';
+            final char queenSide = movingColor == PieceColor.WHITE ? 'Q' : 'q';
             rights = rights.replace(String.valueOf(kingSide), "").replace(String.valueOf(queenSide), "");
         }
 

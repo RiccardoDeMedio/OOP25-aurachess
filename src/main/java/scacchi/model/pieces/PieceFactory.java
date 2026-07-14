@@ -14,7 +14,7 @@ public final class PieceFactory {
      * @return a new Piece object
      */
     public static Piece createPiece(final char fenChar) {
-        final int color = Character.isUpperCase(fenChar) ? 1 : -1;
+        final PieceColor color = Character.isUpperCase(fenChar) ? PieceColor.WHITE : PieceColor.BLACK;
         final char type = Character.toLowerCase(fenChar);
 
         return switch (type) {
