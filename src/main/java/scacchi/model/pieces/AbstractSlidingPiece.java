@@ -15,10 +15,13 @@ public abstract class AbstractSlidingPiece implements Piece {
     private final int color;
     private final int value;
     private final int type;
+
     /**
      * Constructor for the sliding piece.
      *
      * @param color 1 for white, -1 for black
+     * @param value value of the piece
+     * @param type of the piece
      */
     protected AbstractSlidingPiece(final int color, final int value, final int type) {
         if (color != 1 && color != -1) {
@@ -43,11 +46,13 @@ public abstract class AbstractSlidingPiece implements Piece {
     public final int getType() {
         return this.type;
     }
+
     /**
      * Defines the movement vectors (directions) for the specific sliding piece.
      *
      * @return a 2D array representing the directions [x, y]
      */
+
     protected abstract int[][] getDirections();
 
     @Override

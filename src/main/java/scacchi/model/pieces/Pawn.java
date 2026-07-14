@@ -13,11 +13,12 @@ public final class Pawn implements Piece {
 
     private static final int BLACK_START_ROW = 6;
     private static final int WHITE_START_ROW = 1;
-    private final int color; // 1 for white, -1 for black
-    private final int value = 100;
+    private static final int VALUE = 100;
+    private static final int WHITE_PAWN_TYPE = 0; 
+    private static final int BLACK_PAWN_TYPE = 1;
     private final int type;
-    private final static int WHITE_PAWN_TYPE = 0; 
-    private final static int BLACK_PAWN_TYPE = 1;
+    private final int color; // 1 for white, -1 for black
+
     /**
      * Constructor.
      *
@@ -43,8 +44,9 @@ public final class Pawn implements Piece {
 
     @Override
     public int getValue() {
-        return this.value;
+        return VALUE;
     }
+
     @Override
     public Set<Position> getValidMoves(final Position currentPosition, final ReadOnlyBoard board) {
         final Set<Position> validMoves = new HashSet<>();

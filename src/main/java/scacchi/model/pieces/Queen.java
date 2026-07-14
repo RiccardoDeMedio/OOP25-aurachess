@@ -6,8 +6,9 @@ package scacchi.model.pieces;
 public final class Queen extends AbstractSlidingPiece {
 
     private static final int QUEEN_VALUE = 900;
-    private final static int WHITE_QUEEN_TYPE = 8; 
-    private final static int BLACK_QUEEN_TYPE = 9;
+    private static final int WHITE_QUEEN_TYPE = 8; 
+    private static final int BLACK_QUEEN_TYPE = 9;
+
     /**
      * Constructor.
      *

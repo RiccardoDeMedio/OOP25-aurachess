@@ -11,11 +11,12 @@ import scacchi.model.board.ReadOnlyBoard;
  */
 public final class King implements Piece {
 
-    private final int color; // 1 for white, -1 for black
-    private final int value = 2000;
+    private static final int VALUE = 2000;
+    private static final int WHITE_KING_TYPE = 10; 
+    private static final int BLACK_KING_TYPE = 11;
     private final int type;
-    private final static int WHITE_KING_TYPE = 10; 
-    private final static int BLACK_KING_TYPE = 11;
+    private final int color; // 1 for white, -1 for black
+
     /**
      * Constructor.
      *
@@ -71,13 +72,12 @@ public final class King implements Piece {
                 }
             }
         }
-
         return validMoves;
     }
-    
+
     @Override
     public int getValue() {
-        return this.value;
+        return VALUE;
     }
 
     @Override

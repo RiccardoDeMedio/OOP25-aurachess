@@ -35,6 +35,12 @@ public final class Board implements ReadOnlyBoard {
     public Board() {
         this.state = new HashMap<>();
     }
+
+    /**
+     * Allows you to copy a board.
+     *
+     * @param other the board to copy.
+     */
     public Board(final Board other) {
         this.state = new HashMap<>(other.state);
     }

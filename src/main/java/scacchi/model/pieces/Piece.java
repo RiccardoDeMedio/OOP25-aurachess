@@ -24,9 +24,18 @@ public interface Piece {
      */
     int getColor();
 
+    /**
+     * Returns the value of the piece.
+     *
+     * @return the integer value of the piece
+     */
     int getValue();
 
-
+    /**
+     * Returns the type of the piece.
+     *
+     * @return the integer value of the type of the piece.
+     */
     int getType();
 
     /**
@@ -37,6 +46,4 @@ public interface Piece {
      * @return a Set of valid destination positions
      */
     Set<Position> getValidMoves(Position currentPosition, ReadOnlyBoard board);
-
-
 }

@@ -11,11 +11,12 @@ import scacchi.model.board.ReadOnlyBoard;
  */
 public final class Knight implements Piece {
 
-    private final int color; // 1 for white, -1 for black
-    private final int value = 300;
+    private static final int VALUE = 300;
+    private static final int WHITE_KNIGHT_TYPE = 3; 
+    private static final int BLACK_KNIGHT_TYPE = 4; 
     private final int type;
-    private final static int WHITE_KNIGHT_TYPE = 3; 
-    private final static int BLACK_KNIGHT_TYPE = 4; 
+    private final int color; // 1 for white, -1 for black
+
     /**
      * Constructor.
      *
@@ -76,7 +77,7 @@ public final class Knight implements Piece {
 
     @Override
     public int getValue() {
-        return this.value;
+        return VALUE;
     }
 
     @Override
