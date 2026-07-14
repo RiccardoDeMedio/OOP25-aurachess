@@ -17,7 +17,7 @@ import scacchi.model.pieces.PieceColor;
  * It manages the rules of the game of chess.
  */
 public final class GameRules {
-private static final int WHITE_PROMOTION_ROW = 7;
+    private static final int WHITE_PROMOTION_ROW = 7;
     private static final int BLACK_PROMOTION_ROW = 0;
 
     private static final int FEN_EN_PASSANT_INDEX = 3;
