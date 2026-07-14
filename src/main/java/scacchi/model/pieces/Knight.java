@@ -6,10 +6,12 @@ package scacchi.model.pieces;
 public final class Knight extends AbstractSteppingPiece {
 
     /**
-     * Costant to avoid magic numbers for the long backward jump.
-     *
+     * Constant to avoid magic numbers for the long backward jump.
      */
     private static final int MINUS_TWO = -2;
+    private static final int VALUE = 300;
+    private static final int WHITE_KNIGHT_TYPE = 3;
+    private static final int BLACK_KNIGHT_TYPE = 4;
 
     /**
      * Constructor.
@@ -17,7 +19,7 @@ public final class Knight extends AbstractSteppingPiece {
      * @param color the color of the piece
      */
     public Knight(final PieceColor color) {
-        super(color);
+        super(color, VALUE, color == PieceColor.WHITE ? WHITE_KNIGHT_TYPE : BLACK_KNIGHT_TYPE);
     }
 
     @Override

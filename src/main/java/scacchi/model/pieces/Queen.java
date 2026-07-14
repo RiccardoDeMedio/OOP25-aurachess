@@ -5,13 +5,17 @@ package scacchi.model.pieces;
  */
 public final class Queen extends AbstractSlidingPiece {
 
+    private static final int QUEEN_VALUE = 900;
+    private static final int WHITE_QUEEN_TYPE = 8;
+    private static final int BLACK_QUEEN_TYPE = 9;
+
     /**
      * Constructor.
      *
      * @param color the color of the piece
      */
     public Queen(final PieceColor color) {
-        super(color);
+        super(color, QUEEN_VALUE, color == PieceColor.WHITE ? WHITE_QUEEN_TYPE : BLACK_QUEEN_TYPE);
     }
 
     @Override

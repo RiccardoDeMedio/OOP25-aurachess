@@ -13,19 +13,35 @@ import scacchi.model.board.ReadOnlyBoard;
 public abstract class AbstractSlidingPiece implements Piece {
 
     private final PieceColor color;
+    private final int value;
+    private final int type;
 
     /**
      * Constructor for the sliding piece.
      *
      * @param color the color of the piece
+     * @param value value of the piece
+     * @param type of the piece
      */
-    public AbstractSlidingPiece(final PieceColor color) {
+    protected AbstractSlidingPiece(final PieceColor color, final int value, final int type) {
         this.color = color;
+        this.value = value;
+        this.type = type;
     }
 
     @Override
     public final PieceColor getColor() {
         return this.color;
+    }
+
+    @Override
+    public final int getValue() {
+        return this.value;
+    }
+
+    @Override
+    public final int getType() {
+        return this.type;
     }
 
     /**

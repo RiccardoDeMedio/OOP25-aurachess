@@ -13,7 +13,11 @@ public final class Pawn implements Piece {
 
     private static final int BLACK_START_ROW = 6;
     private static final int WHITE_START_ROW = 1;
-    private final PieceColor color; // PieceColor.WHITE or PieceColor.BLACK
+    private static final int VALUE = 100;
+    private static final int WHITE_PAWN_TYPE = 0;
+    private static final int BLACK_PAWN_TYPE = 1;
+    private final PieceColor color;
+    private final int type;
 
     /**
      * Constructor.
@@ -22,6 +26,7 @@ public final class Pawn implements Piece {
      */
     public Pawn(final PieceColor color) {
         this.color = color;
+        this.type = color == PieceColor.WHITE ? WHITE_PAWN_TYPE : BLACK_PAWN_TYPE;
     }
 
     @Override
@@ -32,6 +37,16 @@ public final class Pawn implements Piece {
     @Override
     public PieceColor getColor() {
         return this.color;
+    }
+
+    @Override
+    public int getValue() {
+        return VALUE;
+    }
+
+    @Override
+    public int getType() {
+        return this.type;
     }
 
     @Override
@@ -68,4 +83,5 @@ public final class Pawn implements Piece {
         }
         return validMoves;
     }
+
 }

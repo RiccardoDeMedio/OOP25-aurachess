@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.board.ReadOnlyBoard;

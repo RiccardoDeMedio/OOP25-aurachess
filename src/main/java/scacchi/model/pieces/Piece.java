@@ -9,7 +9,6 @@ import scacchi.model.board.ReadOnlyBoard;
  */
 
 public interface Piece {
-
     /**
      * Returns the FEN letter of the piece.
      * This is used to save the game.
@@ -24,6 +23,20 @@ public interface Piece {
      * @return the color of the piece
      */
     PieceColor getColor();
+
+    /**
+     * Returns the value of the piece.
+     *
+     * @return the integer value of the piece
+     */
+    int getValue();
+
+    /**
+     * Returns the type of the piece.
+     *
+     * @return the integer value of the type of the piece.
+     */
+    int getType();
 
     /**
      * Calculates all valid moves for this piece given its current position and the board state.

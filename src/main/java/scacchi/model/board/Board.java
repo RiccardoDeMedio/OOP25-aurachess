@@ -36,6 +36,20 @@ public final class Board implements ReadOnlyBoard {
         this.state = new HashMap<>();
     }
 
+    /**
+     * Allows you to copy a board.
+     *
+     * @param other the board to copy.
+     */
+    public Board(final Board other) {
+        this.state = new HashMap<>(other.state);
+        this.activeColor = other.activeColor;
+        this.castlingRights = other.castlingRights;
+        this.enPassantTarget = other.enPassantTarget;
+        this.halfmoveClock = other.halfmoveClock;
+        this.fullmoveNumber = other.fullmoveNumber;
+    }
+
     @Override
     public Optional<Piece> getPieceAt(final Position pos) {
         return Optional.ofNullable(state.get(pos));
