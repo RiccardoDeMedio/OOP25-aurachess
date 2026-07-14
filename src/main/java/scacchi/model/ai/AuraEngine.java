@@ -7,12 +7,12 @@ import java.util.Set;
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.pieces.Piece;
+
 /**
  * Chess engine based on the minimax algorithm with alpha-beta pruning.
  * Each move gets evaluated to determine the best one.
  * 
  */
-
 public class AuraEngine {
     private static final int BLACK = -1;
     private static final int WHITE = 1;
@@ -35,7 +35,7 @@ public class AuraEngine {
 
     private final int pieceTable[][] = {// To assign a value to each piece for each square (As 21/05/2026, most of the values are to be updated and corrected) 
         {// White Pawn
-            0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25, 10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0 
+            0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25, 10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0
         },
         {// Black Pawn
             0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, -20, -20, 10, 10, 5, 5, -5, -10, 0, 0, -10, -5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, 5, 10, 25, 25, 10, 5, 5, 10, 10, 20, 30, 30, 20, 10, 10, 50, 50, 50, 50, 50, 50, 50, 50, 0, 0, 0, 0, 0, 0, 0, 0,
