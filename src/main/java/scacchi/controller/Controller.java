@@ -83,6 +83,7 @@ public final class Controller {
     }
 
     /**
+     * Cancel the selection without attempting a move.
      */
     public void clearSelection() {
         selectedSquare = Optional.empty();
