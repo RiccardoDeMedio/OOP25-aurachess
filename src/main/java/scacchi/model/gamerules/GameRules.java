@@ -476,7 +476,7 @@ public final class GameRules {
     }
 
     /**
-     * Verifica se il colore indicato è in stallo.
+     * Check if the indicated color is stalled.
      *
      * @param color the player's color
      * @param board the current board
