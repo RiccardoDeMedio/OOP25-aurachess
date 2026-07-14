@@ -17,7 +17,7 @@ public class AuraEngine {
     private static final int BLACK = -1;
     private static final int WHITE = 1;
     private static final int CHECK_POINTS = 50;
-    private static final int END_TABLE_SPOTS = 2;
+    //private static final int END_TABLE_SPOTS = 2;
     private static final int KING_TYPE_START = 10;
     private static final int KING_TYPE_END = 11;
     private static final List<Position> ALL_POSITIONS = buildAllPosition();
@@ -144,25 +144,34 @@ public class AuraEngine {
         return index;
     }
 
-    private int evaluateBoard(final Board board) {
+    private int evaluateBoard(final Board board, final List<PlacedPiece> allPieces) {
         int totalScore = 0;
-        final List<PlacedPiece> allPieces = getAllPieces(board);
+        Position whiteKingPos = null;
+        Position blackKingPos = null;
         for (final PlacedPiece piece : allPieces) {
             final int pieceValue;
-            if (piece != null) {
                 if (piece.piece().getType() == KING_TYPE_START || piece.piece().getType() == KING_TYPE_END) {
                     pieceValue = piece.piece().getValue()
+                        + pieceTable[piece.piece().getType()][tableConversion(piece.position())];
+                    if (piece.piece.getType() == KING_TYPE_END) {
+                        blackKingPos = piece.position();
+                    } else if (piece.piece.getType() == KING_TYPE_START) {
+                        whiteKingPos = piece.position();
+                    } 
+                    /*
+                    if is endgame 
+                    pieceValue = piece.piece().getValue()
                         + pieceTable[piece.piece().getType() + END_TABLE_SPOTS][tableConversion(piece.position())];
+                     */
                 } else {
                     pieceValue = piece.piece().getValue()
                         + pieceTable[piece.piece().getType()][tableConversion(piece.position())];
                 }
                 totalScore = totalScore + pieceValue * piece.piece().getColor();
             }
-        }
-        if (GameRules.isKingInCheck(BLACK, board)) {
+        if (blackKingPos != null && GameRules.isSquareAttacked(blackKingPos, WHITE, board)) {
             totalScore = totalScore + CHECK_POINTS;
-        } else if (GameRules.isKingInCheck(WHITE, board)) {
+        } else if (whiteKingPos != null && GameRules.isSquareAttacked(whiteKingPos, BLACK, board)) {
             totalScore = totalScore - CHECK_POINTS;
         }
         return totalScore;
@@ -175,13 +184,14 @@ public class AuraEngine {
         final int beta,
         final boolean isMaximizingPlayer
     ) {
+        final List<PlacedPiece> pieces = getAllPieces(board);
         nodesVisited++;
         if (depth < 1) {
-            return evaluateBoard(board);
+            return evaluateBoard(board, pieces);
         }
-        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isMaximizingPlayer);
+        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isMaximizingPlayer, pieces);
         if (allPossibleMoves.isEmpty()) {
-            return evaluateBoard(board);
+            return evaluateBoard(board, pieces);
         }
         if (isMaximizingPlayer) {
             int maxEval = Integer.MIN_VALUE;
@@ -235,13 +245,14 @@ public class AuraEngine {
      */
     public Move findBestMove(final Board board, final boolean isWhite) {
         int bestScore;
+        final List<PlacedPiece> pieces = getAllPieces(board);
         if (isWhite) {
             bestScore = Integer.MIN_VALUE;
         } else {
             bestScore = Integer.MAX_VALUE;
         }
         Move bestMove = null;
-        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isWhite);
+        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isWhite, pieces);
 
         for (final Move move : allPossibleMoves) {
             final Board newBoard = new Board(board);
@@ -270,8 +281,10 @@ public class AuraEngine {
         final Move bestMove = findBestMove(board, isWhite);
         final Board bestBoard = new Board(board);
         bestBoard.movePiece(bestMove.startPosition, bestMove.finalPosition);
-        final int evaluationPlayerMove = evaluateBoard(newBoard);
-        final int evaluationBestMove = evaluateBoard(bestBoard);
+        final List<PlacedPiece> newBoardPieces = getAllPieces(newBoard);
+        final List<PlacedPiece> bestBoardPieces = getAllPieces(bestBoard);
+        final int evaluationPlayerMove = evaluateBoard(newBoard, newBoardPieces);
+        final int evaluationBestMove = evaluateBoard(bestBoard, bestBoardPieces);
         int loss;
         final int minimum = 0;
         if (isWhite) {
@@ -314,8 +327,7 @@ public class AuraEngine {
         return averagePrecision;
     }
 
-    private List<Move> getAllPossibleMoves(final Board board, final boolean isWhite) {
-        final List<PlacedPiece> allPieces = getAllPieces(board);
+    private List<Move> getAllPossibleMoves(final Board board, final boolean isWhite, final List<PlacedPiece> allPieces) {
         final List<Move> allPossibleMoves = new ArrayList<>();
         for (final PlacedPiece placedPiece : allPieces) {
             if (isWhite) {
@@ -336,6 +348,11 @@ public class AuraEngine {
                 }
             }
         }
+        allPossibleMoves.sort((m1, m2) -> {
+            final boolean firstCapture = board.getPieceAt(m1.finalPosition()).isPresent();
+            final boolean secondCapture = board.getPieceAt(m2.finalPosition()).isPresent();
+            return Boolean.compare(secondCapture, firstCapture);
+        });
         return allPossibleMoves;
     }
 
