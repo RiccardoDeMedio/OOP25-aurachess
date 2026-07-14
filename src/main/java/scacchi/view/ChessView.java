@@ -66,6 +66,13 @@ public interface ChessView {
     void setLoadListener(Runnable listener);
 
     /**
+     * Set the listener for the delete all saves button.
+     *
+     * @param listener the action to perform when the key is pressed
+     */
+    void setDeleteSavesListener(Runnable listener);
+
+    /**
      * Display a pop-up allowing the user to select the item for the promotion.
      *
      * @param isWhite to say which color is going on promotion
