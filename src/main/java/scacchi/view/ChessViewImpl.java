@@ -41,6 +41,7 @@ public final class ChessViewImpl implements ChessView {
     private static final int DEFAULT_ICON_SIZE = 64;
     private final JButton undoButton = new JButton("Undo Move");
     private final JButton saveButton = new JButton("Save Game");
+    private final JButton loadButton = new JButton("Load Game");
     private final JFrame frame;
 
     // Constants for colors
@@ -78,6 +79,7 @@ public final class ChessViewImpl implements ChessView {
         controlPanel.setLayout(new FlowLayout());
         controlPanel.add(undoButton);
         controlPanel.add(saveButton);
+        controlPanel.add(loadButton);
 
         frame.add(boardPanel, BorderLayout.CENTER);
         frame.add(controlPanel, BorderLayout.SOUTH);
@@ -171,6 +173,15 @@ public final class ChessViewImpl implements ChessView {
     }
 
     @Override
+    public void setLoadListener(final Runnable listener) {
+        loadButton.addActionListener(e -> {
+            if (listener != null) {
+                listener.run();
+            }
+        });
+    }
+
+    @Override
     public void showView() {
         this.frame.setVisible(true);
     }
@@ -250,6 +261,8 @@ public final class ChessViewImpl implements ChessView {
             view.setUndoListener(() -> LOGGER.info("L'utente ha cliccato il bottone: Undo Move"));
 
             view.setSaveListener(() -> LOGGER.info("L'utente ha cliccato il bottone: Save Game"));
+
+            view.setLoadListener(() -> LOGGER.info("L'utente ha cliccato il bottone: Load Game"));
         });
     }
 
