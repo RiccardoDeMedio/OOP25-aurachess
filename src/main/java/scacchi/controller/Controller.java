@@ -1,13 +1,10 @@
 package scacchi.controller;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
-
 import scacchi.model.gamerules.GameRules;
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
@@ -34,6 +31,8 @@ public final class Controller {
     private static final int CASTLING_KING_DELTA = 2;
     private static final int PAWN_DOUBLE_STEP_DELTA = 2;
     private static final int BLACK_HOME_ROW = 7;
+    private static final String LOAD_GAME_TITLE = "Carica Partita";
+    private static final String ERROR_TITLE = "Errore";
 
     private final Board board;
     private final SaveManager saveManager = new SaveManager();
@@ -102,28 +101,29 @@ public final class Controller {
             this.view.setUndoListener(this::handleUndo);
             this.view.setSaveListener(this::handleSave);
             this.view.setLoadListener(this::handleLoad);
+            this.view.setDeleteSavesListener(this::handleDeleteSaves);
             updateView();
         }
     }
 
     /**
-     * Sincronizza l'intero stato logico della Board con l'interfaccia grafica.
-     * L'ordine delle operazioni (prima gli sfondi, poi i pezzi) garantisce
-     * che il disegno delle evidenziazioni non sovrascriva le icone.
+     * Synchronizes the Board's entire logical state with the graphical interface.
+     * The order of operations (backgrounds first, then pieces)
+     * ensures that the drawing of highlights does not overwrite the icons.
      */
     public void updateView() {
         if (view == null) {
             return;
         }
 
-        // 1. Resetta il colore di tutte le caselle
+        // Reset the color of all the squares.
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 view.resetBackground(new Position(x, y));
             }
         }
 
-        // 2. Applica le evidenziazioni (casella selezionata e mosse legali)
+        // Apply highlights (selected square and legal moves)
         if (selectedSquare.isPresent()) {
             final Position sel = selectedSquare.get();
             view.highlightSquare(sel);
@@ -132,7 +132,7 @@ public final class Controller {
             }
         }
 
-        // 3. Disegna tutti i pezzi rigorosamente SOPRA gli sfondi e le evidenziazioni
+        // Draw all the pieces strictly on top of the backgrounds and highlights.
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position pos = new Position(x, y);
@@ -154,7 +154,7 @@ public final class Controller {
             boolean isPromotionMove = false;
             if (pieceOpt.isPresent()) {
                 final char type = Character.toLowerCase(pieceOpt.get().getFenChar());
-                // Controllo solido per rilevare il clic su una casella di promozione
+                // Robust check to detect clicks on a promotion box
                 if (type == 'p' && (pos.y() == 0 || pos.y() == BLACK_HOME_ROW) 
                         && GameRules.getLegalMoves(from, board).contains(pos)) {
                     isPromotionMove = true;
@@ -191,27 +191,34 @@ public final class Controller {
             return;
         }
 
-        final JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Salva Partita");
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+        // It simply asks for the name via a text pop-up.
+        final String inputName = JOptionPane.showInputDialog(
+                null,
+                "Inserisci il nome del salvataggio:",
+                "Salva Partita",
+                JOptionPane.PLAIN_MESSAGE
+        );
 
-        final int userSelection = fileChooser.showSaveDialog(null);
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            final File fileToSave = fileChooser.getSelectedFile();
+        // If the user presses "Cancel" or closes the dialog, inputName is null.
+        // Let's also avoid empty names or names consisting solely of spaces.
+        if (inputName != null && !inputName.isBlank()) {
+            String fileName = inputName.trim();
+
+            // We remove ".fen" if the user typed it out of habit.
+            if (fileName.toLowerCase(Locale.ROOT).endsWith(".fen")) {
+                fileName = fileName.substring(0, fileName.length() - 4);
+            }
+
             try {
-                String path = fileToSave.getAbsolutePath();
-                if (!path.toLowerCase(Locale.ROOT).endsWith(".fen")) {
-                    path += ".fen";
-                }
-                saveGame(path);
-                JOptionPane.showMessageDialog(null, 
-                        "Partita salvata con successo!\n" + path, 
-                        "Salva Partita", 
+                saveGame(fileName);
+                JOptionPane.showMessageDialog(null,
+                        "Partita salvata con successo come: " + fileName,
+                        "Salva Partita",
                         JOptionPane.INFORMATION_MESSAGE);
             } catch (final IOException e) {
-                JOptionPane.showMessageDialog(null, 
-                        "Errore durante il salvataggio: " + e.getMessage(), 
-                        "Errore", 
+                JOptionPane.showMessageDialog(null,
+                        "Errore durante il salvataggio: " + e.getMessage(),
+                        ERROR_TITLE,
                         JOptionPane.ERROR_MESSAGE);
             }
         }
@@ -222,24 +229,80 @@ public final class Controller {
             return;
         }
 
-        final JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Seleziona il salvataggio da caricare");
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+        final java.util.List<String> availableSaves = saveManager.getAvailableSaves();
 
-        final int userSelection = fileChooser.showOpenDialog(null);
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            final File fileToLoad = fileChooser.getSelectedFile();
+        if (availableSaves.isEmpty()) {
+            JOptionPane.showMessageDialog(null,
+                    "Nessun salvataggio trovato!",
+                    LOAD_GAME_TITLE,
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // We display the pop-up with the drop-down menu.
+        final String selectedSave = (String) JOptionPane.showInputDialog(
+                null,
+                "Seleziona il salvataggio da caricare:",
+                LOAD_GAME_TITLE,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                availableSaves.toArray(),
+                availableSaves.getFirst()
+        );
+
+        // If the user has confirmed a choice
+        if (selectedSave != null) {
             try {
-                loadGame(fileToLoad.getAbsolutePath());
+                loadGame(selectedSave);
                 updateView();
-                JOptionPane.showMessageDialog(null, 
-                        "Salvataggio caricato correttamente!", 
-                        "Carica Partita", 
+                JOptionPane.showMessageDialog(null,
+                        "Salvataggio caricato correttamente!",
+                        LOAD_GAME_TITLE,
                         JOptionPane.INFORMATION_MESSAGE);
             } catch (final IOException e) {
-                JOptionPane.showMessageDialog(null, 
-                        "Impossibile caricare il file: " + e.getMessage(), 
-                        "Errore", 
+                JOptionPane.showMessageDialog(null,
+                        "Impossibile caricare il file: " + e.getMessage(),
+                        ERROR_TITLE,
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void handleDeleteSaves() {
+        if (view == null) {
+            return;
+        }
+
+        // We check if there is actually anything to delete.
+        if (saveManager.getAvailableSaves().isEmpty()) {
+            JOptionPane.showMessageDialog(null,
+                    "Non ci sono salvataggi da eliminare.",
+                    "Elimina Salvataggi",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // We ask the user for confirmation.
+        final int confirm = JOptionPane.showConfirmDialog(
+                null,
+                "Sei sicuro di voler eliminare TUTTI i salvataggi?\nQuesta azione è irreversibile.",
+                "Conferma Eliminazione",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+
+        // If the user clicks "Yes", we proceed with the destruction.
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                saveManager.deleteAllSaves();
+                JOptionPane.showMessageDialog(null,
+                        "Tutti i salvataggi sono stati eliminati con successo.",
+                        "Elimina Salvataggi",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (final IOException e) {
+                JOptionPane.showMessageDialog(null,
+                        "Errore durante l'eliminazione: " + e.getMessage(),
+                        ERROR_TITLE,
                         JOptionPane.ERROR_MESSAGE);
             }
         }
@@ -419,10 +482,10 @@ public final class Controller {
             return pseudoLegal ? MoveOutcome.MOVE_LEAVES_KING_IN_CHECK : MoveOutcome.ILLEGAL_MOVE;
         }
 
-        // Calcolo delle special rules prima che il pezzo modifichi la griglia
+        // Calculation of special rules before the piece modifies the grid.
         final boolean isCastling = isKing && Math.abs(to.x() - from.x()) == CASTLING_KING_DELTA;
 
-        // Controllo en passant sganciato da GameRules (previene rimozioni errate per bug esterni)
+        // En passant check decoupled from GameRules (prevents incorrect removals due to external bugs)
         final boolean isEnPassant = isPawn && from.x() != to.x() && board.isEmpty(to);
 
         final boolean isCapture = !board.isEmpty(to) || isEnPassant;
@@ -433,10 +496,10 @@ public final class Controller {
         final int halfmoveClockBefore = board.getHalfmoveClock();
         final int fullmoveNumberBefore = board.getFullmoveNumber();
 
-        // 1. Muove il pezzo sulla board (generando la entry di undo base)
+        // Moves the piece on the board (generating the base undo entry)
         board.movePiece(from, to);
 
-        // 2. Applica gli effetti collaterali
+        // Apply the side effects
         if (isCastling) {
             moveCastlingRook(to, movingColor);
         }
@@ -449,7 +512,7 @@ public final class Controller {
             board.putPiece(to, PieceFactory.createPiece(promotedFenChar));
         }
 
-        // 3. Aggiorna i metadati della scacchiera
+        // Update the chessboard metadata.
         board.setActiveColor(movingColor == PieceColor.WHITE ? 'b' : 'w');
         board.setCastlingRights(updateCastlingRights(castlingRightsBefore, from, to, movingColor, isCastling));
         board.setEnPassantTarget(isPawnDoubleStep
