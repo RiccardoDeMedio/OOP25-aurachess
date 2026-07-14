@@ -4,43 +4,70 @@ import scacchi.model.board.Position;
 import java.util.function.Consumer;
 
 /**
- * Interfaccia grafica principale della scacchiera.
+ * Main graphical interface of the chessboard.
  */
 public interface ChessView {
 
     /**
-     * Imposta il listener che reagisce ai click sulle caselle.
+     * Set the listener that reacts to clicks on the boxes.
      *
-     * @param listener il listener da collegare
+     * @param listener the listener to be connected
      */
     void setSquareClickListener(Consumer<Position> listener);
 
     /**
-     * Disegna un pezzo (rappresentato dal suo carattere FEN) in una data posizione.
+     * Draw a piece (represented by its FEN character) at a given position.
      *
-     * @param pos la posizione logica in cui disegnare
-     * @param fenChar il carattere FEN del pezzo
+     * @param pos the logical position in which to draw
+     * @param fenChar the FEN character of the piece
      */
     void drawPiece(Position pos, char fenChar);
 
     /**
-     * Rimuove il disegno del pezzo da una casella.
+     * Removes the piece's design from a square.
      *
-     * @param pos la posizione da svuotare
+     * @param pos the position to be cleared
      */
     void clearSquare(Position pos);
 
     /**
-     * Evidenzia una casella quando viene selezionata.
+     * Highlights a box when it is selected.
      *
-     * @param pos la posizione da evidenziare
+     * @param pos the position of the box to highlight
      */
     void highlightSquare(Position pos);
 
     /**
-     * Ripristina il colore di sfondo originale della casella.
+     * Restores the box's original background color.
      *
-     * @param pos la posizione da ripristinare
+     * @param pos the position of the box to be restored
      */
     void resetBackground(Position pos);
+
+    /**
+     * Imposta il listener per il pulsante di annullamento mossa (rollback).
+     *
+     * @param listener l'azione da eseguire quando viene premuto il tasto
+     */
+    void setUndoListener(Runnable listener);
+
+    /**
+     * Imposta il listener per il pulsante di salvataggio.
+     *
+     * @param listener l'azione da eseguire quando viene premuto il tasto
+     */
+    void setSaveListener(Runnable listener);
+
+    /**
+     * Display a pop-up allowing the user to select the item for the promotion.
+     *
+     * @param isWhite to say which color is going on promotion
+     * @return the lowercase FEN character corresponding to the choice ('q', 'r', 'b', 'n')
+     */
+    char askPromotionChoice(boolean isWhite);
+
+    /**
+     * Makes the game window visible.
+     */
+    void showView();
 }

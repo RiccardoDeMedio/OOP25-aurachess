@@ -6,21 +6,21 @@ package scacchi.model.pieces;
 public final class Queen extends AbstractSlidingPiece {
 
     private static final int QUEEN_VALUE = 900;
-    private static final int WHITE_QUEEN_TYPE = 8; 
+    private static final int WHITE_QUEEN_TYPE = 8;
     private static final int BLACK_QUEEN_TYPE = 9;
 
     /**
      * Constructor.
      *
-     * @param color 1 for white, -1 for black
+     * @param color the color of the piece
      */
-    public Queen(final int color) {
-        super(color, QUEEN_VALUE, color == 1 ? WHITE_QUEEN_TYPE : BLACK_QUEEN_TYPE);
+    public Queen(final PieceColor color) {
+        super(color, QUEEN_VALUE, color == PieceColor.WHITE ? WHITE_QUEEN_TYPE : BLACK_QUEEN_TYPE);
     }
 
     @Override
     public char getFenChar() {
-        return this.getColor() == 1 ? 'Q' : 'q';
+        return this.getColor() == PieceColor.WHITE ? 'Q' : 'q';
     }
 
     @Override

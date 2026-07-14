@@ -10,17 +10,16 @@ import scacchi.model.board.Position;
 import scacchi.model.board.SaveManager;
 import scacchi.model.pieces.Piece;
 import scacchi.model.pieces.PieceFactory;
+import scacchi.model.pieces.PieceColor;
 
 /**
- * Gestisce gli eventi di gioco: selezione delle caselle, validazione ed esecuzione
- * delle mosse (comprese quelle speciali: arrocco, presa en passant, promozione),
- * annullamento delle mosse e salvataggio/caricamento della partita.
+ * Manages game events: square selection, move validation and execution
+ * (including special moves: castling, en passant, promotion),
+ * undoing moves, and saving/loading the game.
  */
 public final class Controller {
 
     private static final char DEFAULT_PROMOTION_CHOICE = 'q';
-    private static final int WHITE = 1;
-    private static final int BLACK = -1;
     private static final int KINGSIDE_ROOK_COLUMN = 7;
     private static final int QUEENSIDE_ROOK_COLUMN = 0;
     private static final int KINGSIDE_KING_DEST_COLUMN = 6;
@@ -36,7 +35,7 @@ public final class Controller {
     private Optional<Position> selectedSquare = Optional.empty();
 
     /**
-     * Esito post click.
+     * Post-click outcome.
      */
     public enum MoveOutcome {
         SELECTED,
@@ -48,7 +47,7 @@ public final class Controller {
     }
 
     /**
-     * Stato della partita per chi deve muovere.
+     * Game state for the player whose turn it is to move.
      */
     public enum GameStatus {
         ONGOING,
@@ -61,9 +60,9 @@ public final class Controller {
     }
 
     /**
-     * Crea un controller che opera sulla board indicata.
+     * Create a controller that operates on the specified board.
      *
-     * @param board la scacchiera di gioco
+     * @param board the current game board
      */
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("EI_EXPOSE_REP2")
     public Controller(final Board board) {
@@ -75,39 +74,38 @@ public final class Controller {
     }
 
     /**
-     * Restituisce la casella attualmente selezionata.
+     * Returns the currently selected box.
      *
-     * @return un Optional contenente la posizione selezionata
+     * @return an Optional containing the selected position
      */
     public Optional<Position> getSelectedSquare() {
         return selectedSquare;
     }
 
     /**
-     * Annulla la selezione senza tentare una mossa.
      */
     public void clearSelection() {
         selectedSquare = Optional.empty();
     }
 
     /**
-     * Restituisce le mosse legali per il pezzo nella casella indicata, utile alla
-     * view per evidenziare le destinazioni possibili dopo un click.
+     * Returns the legal moves for the piece on the specified square;
+     * useful for the view to highlight possible destinations after a click.
      *
-     * @param pos la posizione del pezzo da controllare
-     * @return un Set di posizioni che rappresentano le mosse legali
+     * @param pos the position of the part to be inspected
+     * @return a set of positions representing the legal moves
      */
     public Set<Position> getLegalMovesFrom(final Position pos) {
         return GameRules.getLegalMoves(pos, board);
     }
 
     /**
-     * Restituisce lo stato corrente della partita per il giocatore che deve muovere.
+     * Returns the current state of the game for the player whose turn it is to move.
      *
-     * @return lo stato della partita corrente
+     * @return the state of the current game
      */
     public GameStatus getGameStatus() {
-        final int activeColor = board.getActiveColor() == 'w' ? WHITE : BLACK;
+        final PieceColor activeColor = board.getActiveColor() == 'w' ? PieceColor.WHITE : PieceColor.BLACK;
 
         if (GameRules.isCheckmate(activeColor, board)) {
             return GameStatus.CHECKMATE;
@@ -131,9 +129,9 @@ public final class Controller {
     }
 
     /**
-     * Annulla l'ultima mossa giocata, se presente, e ripulisce la selezione corrente.
+     * Undoes the last move played, if any, and clears the current selection.
      *
-     * @return true se la mossa è stata annullata, false altrimenti
+     * @return true if the move was cancelled, false otherwise
      */
     public boolean undoMove() {
         final boolean rolledBack = board.rollback();
@@ -144,20 +142,20 @@ public final class Controller {
     }
 
     /**
-     * Salva la partita corrente su file.
+     * Save the current game to a file.
      *
-     * @param fileName il nome del file di destinazione
-     * @throws IOException in caso di errori di scrittura
+     * @param fileName the destination file name
+     * @throws IOException in the event of clerical errors
      */
     public void saveGame(final String fileName) throws IOException {
         saveManager.saveGame(fileName, board);
     }
 
     /**
-     * Carica una partita salvata, sostituendo lo stato corrente della board.
+     * Load a saved game, replacing the current state of the board.
      *
-     * @param fileName il nome del file di origine
-     * @throws IOException in caso di errori di lettura
+     * @param fileName the source file name
+     * @throws IOException in the event of reading errors
      */
     public void loadGame(final String fileName) throws IOException {
         saveManager.loadGame(fileName, board);
@@ -165,21 +163,21 @@ public final class Controller {
     }
 
     /**
-     * Seleziona una casella o muove un pezzo, usando la regina come promozione di default se necessario.
+     * Selects a square or moves a piece, using the queen as the default promotion if necessary.
      *
-     * @param pos la posizione da selezionare
-     * @return l'esito dell'operazione di selezione o mossa
+     * @param pos the position to be selected
+     * @return the outcome of the selection operation or move
      */
     public MoveOutcome selectSquare(final Position pos) {
         return selectSquare(pos, DEFAULT_PROMOTION_CHOICE);
     }
 
     /**
-     * Seleziona una casella o muove un pezzo, specificando a cosa promuovere se applicabile.
+     * Select a square or move a piece, specifying the promotion piece if applicable.
      *
-     * @param pos la posizione da selezionare
-     * @param promotionChoice il carattere del pezzo desiderato in caso di promozione
-     * @return l'esito dell'operazione di selezione o mossa
+     * @param pos the position to be selected
+     * @param promotionChoice the nature of the item requested in the event of a promotion
+     * @return the outcome of the selection operation or move
      */
     public MoveOutcome selectSquare(final Position pos, final char promotionChoice) {
         if (selectedSquare.isEmpty()) {
@@ -188,13 +186,13 @@ public final class Controller {
 
         final Position currentlySelected = selectedSquare.get();
 
-        /* per lo stesso pezzo annullo la selezione */
+        // I am cancelling the selection for the same piece.
         if (currentlySelected.equals(pos)) {
             selectedSquare = Optional.empty();
             return MoveOutcome.DESELECTED;
         }
 
-        /* se seleziono un altro mio pezzo lo seleziona e basta */
+        // If I select another one of my pieces, it just selects it.
         if (belongsToActiveColor(pos)) {
             selectedSquare = Optional.of(pos);
             return MoveOutcome.SELECTED;
@@ -222,12 +220,17 @@ public final class Controller {
                 .orElse(false);
     }
 
-    /*
-     valida ed esegue una mossa gestendo le mosse speciali
-     (arrocco, presa en passant, promozione) e aggiornando direttamente i dati
-     della board (colore attivo, diritti di arrocco, bersaglio en passant,
-     contatore delle 50 mosse, numero di mossa) tramite i setter dedicati di Board,
-     senza dover ricostruire l'intera scacchiera da una stringa FEN.
+    /**
+     * It validates and executes a move, handling special moves (castling, *en passant* capture, promotion)
+     * and directly updating board data (active color, castling rights, *en passant* target, 50-move counter, move number)
+     * via the `Board` class's dedicated setters, without needing to reconstruct the entire board from a FEN string.
+     *
+     * @param from the starting position of the piece to be moved
+     * @param to the desired target position for the workpiece
+     * @param promotionChoice the character (es. 'q', 'r', 'b', 'n') indicating the piece chosen for a potential promotion
+     *                        (ignored if the move is not a promotion)
+     * @return a {@link MoveOutcome} representing the result of the move attempt
+     *              (es. successfully played, illegal, or king in check)
      */
     private MoveOutcome executeMove(final Position from, final Position to, final char promotionChoice) {
         final Optional<Piece> movingPieceOpt = board.getPieceAt(from);
@@ -235,7 +238,7 @@ public final class Controller {
             return MoveOutcome.INVALID_SELECTION;
         }
         final Piece movingPiece = movingPieceOpt.get();
-        final int movingColor = movingPiece.getColor();
+        final PieceColor movingColor = movingPiece.getColor();
         final char movingType = Character.toLowerCase(movingPiece.getFenChar());
         final boolean isKing = movingType == 'k';
         final boolean isPawn = movingType == 'p';
@@ -246,7 +249,7 @@ public final class Controller {
             return pseudoLegal ? MoveOutcome.MOVE_LEAVES_KING_IN_CHECK : MoveOutcome.ILLEGAL_MOVE;
         }
 
-        /* calcolo le caratteristiche della mossa prima di cambiare la board */
+        // I calculate the move's characteristics before changing the board.
         final boolean isCastling = isKing && Math.abs(to.x() - from.x()) == CASTLING_KING_DELTA;
         final boolean isEnPassant = isPawn && GameRules.isEnPassantCapture(from, to, board);
         final boolean isCapture = !board.isEmpty(to) || isEnPassant;
@@ -256,11 +259,10 @@ public final class Controller {
         final int halfmoveClockBefore = board.getHalfmoveClock();
         final int fullmoveNumberBefore = board.getFullmoveNumber();
 
-        /* sposta il pezzo principale: unica chiamata che registra lo storico (undo) */
+        // Moves the main piece: the only call that records the history (undo)
         board.movePiece(from, to);
 
-        /* applico gli effetti collaterali delle mosse speciali direttamente sulla board,
-           senza aggiungere ulteriori voci allo storico di undo */
+        // I apply the side effects of special moves directly to the board, without adding further entries to the undo history
         if (isCastling) {
             moveCastlingRook(to, movingColor);
         }
@@ -273,14 +275,14 @@ public final class Controller {
             board.putPiece(to, PieceFactory.createPiece(promotedFenChar));
         }
 
-        /* aggiorno i metadati della partita tramite i setter dedicati della board */
-        board.setActiveColor(movingColor == WHITE ? 'b' : 'w');
+        // I update the match metadata using the board's dedicated setters.
+        board.setActiveColor(movingColor == PieceColor.WHITE ? 'b' : 'w');
         board.setCastlingRights(updateCastlingRights(castlingRightsBefore, from, to, movingColor, isCastling));
         board.setEnPassantTarget(isPawnDoubleStep
                 ? GameRules.positionToAlgebraic(new Position(from.x(), (from.y() + to.y()) / 2))
                 : "-");
         board.setHalfmoveClock(isPawnMoveOrCapture(isPawn, isCapture) ? 0 : halfmoveClockBefore + 1);
-        board.setFullmoveNumber(movingColor == BLACK ? fullmoveNumberBefore + 1 : fullmoveNumberBefore);
+        board.setFullmoveNumber(movingColor == PieceColor.BLACK ? fullmoveNumberBefore + 1 : fullmoveNumberBefore);
 
         return MoveOutcome.MOVE_PLAYED;
     }
@@ -289,13 +291,15 @@ public final class Controller {
         return isPawn || isCapture;
     }
 
-    /*
-     sposta la torre coinvolta nell'arrocco nella sua casella di destinazione usando
-     removePiece/putPiece di Board: non aggiunge nuove voci allo storico di undo,
-     dato che è già stata registrata un'unica volta da movePiece per il re.
+    /**
+     * Move the rook involved in the castling to its destination square using the Board's removePiece/putPiece methods;
+     * this does not add new entries to the undo history, as the move was already recorded once by movePiece for the king.
+     *
+     * @param kingDestination the square the king moved to, used to determine if the castling is kingside or queenside
+     * @param color the color of the player performing the castling
      */
-    private void moveCastlingRook(final Position kingDestination, final int color) {
-        final int row = color == WHITE ? 0 : BLACK_HOME_ROW;
+    private void moveCastlingRook(final Position kingDestination, final PieceColor color) {
+        final int row = color == PieceColor.WHITE ? 0 : BLACK_HOME_ROW;
         if (kingDestination.x() == KINGSIDE_KING_DEST_COLUMN) {
             relocateRook(new Position(KINGSIDE_ROOK_COLUMN, row), new Position(KINGSIDE_ROOK_DEST_COLUMN, row));
         } else if (kingDestination.x() == QUEENSIDE_KING_DEST_COLUMN) {
@@ -303,6 +307,14 @@ public final class Controller {
         }
     }
 
+    /**
+     * Silently transfers the rook from its starting square to its destination during a castling move.
+     * By using {@code removePiece} and {@code putPiece} instead of {@code movePiece}, this operation
+     * prevents an unwanted extra state from being pushed to the undo history stack.
+     *
+     * @param from the original square of the rook before castling
+     * @param to the destination square where the rook will be placed after castling
+     */
     private void relocateRook(final Position from, final Position to) {
         board.getPieceAt(from).ifPresent((final Piece rook) -> {
             board.removePiece(from);
@@ -310,13 +322,25 @@ public final class Controller {
         });
     }
 
+    /**
+     * Computes the new castling rights string after a move is executed.
+     * It revokes castling availability if the king moves, if a rook leaves its starting square,
+     * or if a rook is captured on its starting square.
+     *
+     * @param rightsBefore the castling rights string prior to the move (es. "KQkq" or "-")
+     * @param from the starting square of the move, used to check if a rook moved away
+     * @param to the destination square of the move, used to check if a rook was captured
+     * @param movingColor the color of the player executing the move
+     * @param movedIsKing true if the moving piece is a king, which revokes both castling rights for that color
+     * @return the updated castling rights string, or "-" if neither player can castle anymore
+     */
     private String updateCastlingRights(final String rightsBefore, final Position from, final Position to,
-            final int movingColor, final boolean movedIsKing) {
+            final PieceColor movingColor, final boolean movedIsKing) {
         String rights = rightsBefore;
 
         if (movedIsKing) {
-            final char kingSide = movingColor == WHITE ? 'K' : 'k';
-            final char queenSide = movingColor == WHITE ? 'Q' : 'q';
+            final char kingSide = movingColor == PieceColor.WHITE ? 'K' : 'k';
+            final char queenSide = movingColor == PieceColor.WHITE ? 'Q' : 'q';
             rights = rights.replace(String.valueOf(kingSide), "").replace(String.valueOf(queenSide), "");
         }
 
@@ -326,6 +350,16 @@ public final class Controller {
         return rights.isEmpty() ? "-" : rights;
     }
 
+    /**
+     * Removes the specific castling right associated with a rook's starting square.
+     * This helper method ensures that if a rook moves from its home square, or is captured on it,
+     * the corresponding castling right (K, Q, k, or q) is permanently revoked.
+     *
+     * @param rights the current castling rights string
+     * @param pos the position being evaluated (can be the move's starting or destination square)
+     * @return the updated castling rights string with the specific right removed,
+     *              or the original string if the position is not a rook's starting square
+     */
     private String stripRightIfRookHomeSquare(final String rights, final Position pos) {
         if (pos.equals(new Position(QUEENSIDE_ROOK_COLUMN, 0))) {
             return rights.replace("Q", "");

@@ -12,28 +12,25 @@ import scacchi.model.board.ReadOnlyBoard;
  */
 public abstract class AbstractSlidingPiece implements Piece {
 
-    private final int color;
+    private final PieceColor color;
     private final int value;
     private final int type;
 
     /**
      * Constructor for the sliding piece.
      *
-     * @param color 1 for white, -1 for black
+     * @param color the color of the piece
      * @param value value of the piece
      * @param type of the piece
      */
-    protected AbstractSlidingPiece(final int color, final int value, final int type) {
-        if (color != 1 && color != -1) {
-            throw new IllegalArgumentException("Color must be 1 (white) or -1 (black)");
-        }
+    protected AbstractSlidingPiece(final PieceColor color, final int value, final int type) {
         this.color = color;
         this.value = value;
         this.type = type;
     }
 
     @Override
-    public final int getColor() {
+    public final PieceColor getColor() {
         return this.color;
     }
 
@@ -52,7 +49,6 @@ public abstract class AbstractSlidingPiece implements Piece {
      *
      * @return a 2D array representing the directions [x, y]
      */
-
     protected abstract int[][] getDirections();
 
     @Override

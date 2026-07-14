@@ -11,15 +11,15 @@ public final class Bishop extends AbstractSlidingPiece {
     /**
      * Constructor.
      *
-     * @param color 1 for white, -1 for black
+     * @param color the color of the piece
      */
-    public Bishop(final int color) {
-        super(color, BISHOP_VALUE, color == 1 ? WHITE_BISHOP_TYPE : BLACK_BISHOP_TYPE);
+    public Bishop(final PieceColor color) {
+        super(color, BISHOP_VALUE, color == PieceColor.WHITE ? WHITE_BISHOP_TYPE : BLACK_BISHOP_TYPE);
     }
 
     @Override
     public char getFenChar() {
-        return this.getColor() == 1 ? 'B' : 'b';
+        return this.getColor() == PieceColor.WHITE ? 'B' : 'b';
     }
 
     @Override
