@@ -1,10 +1,12 @@
 package scacchi.controller;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import javax.swing.JOptionPane;
+import scacchi.model.ai.AuraEngine;
 import scacchi.model.gamerules.GameRules;
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
@@ -17,10 +19,12 @@ import scacchi.view.ChessView;
 /**
  * Manages game events: square selection, move validation and execution
  * (including special moves: castling, en passant, promotion),
- * undoing moves, and saving/loading the game.
+ * undoing moves, saving/loading the game, and optionally delegating
+ * a move to the {@link AuraEngine} CPU opponent.
  */
 public final class Controller {
 
+    private static final String EI_EXPOSE_REP2_WARNING = "EI_EXPOSE_REP2";
     private static final char DEFAULT_PROMOTION_CHOICE = 'q';
     private static final int KINGSIDE_ROOK_COLUMN = 7;
     private static final int QUEENSIDE_ROOK_COLUMN = 0;
@@ -38,6 +42,7 @@ public final class Controller {
     private final SaveManager saveManager = new SaveManager();
     private Optional<Position> selectedSquare = Optional.empty();
     private ChessView view;
+    private AuraEngine engine;
 
     /**
      * Post-click outcome.
@@ -48,7 +53,8 @@ public final class Controller {
         INVALID_SELECTION,
         ILLEGAL_MOVE,
         MOVE_LEAVES_KING_IN_CHECK,
-        MOVE_PLAYED
+        MOVE_PLAYED,
+        NO_ENGINE_MOVE_AVAILABLE
     }
 
     /**
@@ -69,7 +75,7 @@ public final class Controller {
      *
      * @param board the current game board
      */
-    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("EI_EXPOSE_REP2")
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(EI_EXPOSE_REP2_WARNING)
     public Controller(final Board board) {
         if (board == null) {
             throw new IllegalArgumentException("la board non può essere nulla");
@@ -93,7 +99,7 @@ public final class Controller {
      *
      * @param view the chessboard graphical interface
      */
-    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("EI_EXPOSE_REP2")
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(EI_EXPOSE_REP2_WARNING)
     public void setView(final ChessView view) {
         this.view = view;
         if (this.view != null) {
@@ -107,35 +113,51 @@ public final class Controller {
     }
 
     /**
-     * Synchronizes the Board's entire logical state with the graphical interface.
-     * The order of operations (backgrounds first, then pieces)
-     * ensures that the drawing of highlights does not overwrite the icons.
+     * Connects (or disconnects, passing {@code null}) the CPU engine that this controller
+     * can delegate moves to via {@link #playEngineMove()}.
+     *
+     * @param engine the AuraEngine instance to use, or null to disable CPU play
+     */
+    public void setEngine(final AuraEngine engine) {
+        this.engine = engine;
+    }
+
+    /**
+     * Returns whether a CPU engine is currently connected to this controller.
+     *
+     * @return true if an engine has been set via {@link #setEngine(AuraEngine)}
+     */
+    public boolean hasEngine() {
+        return engine != null;
+    }
+
+    /**
+     * Synchronizes the Board's entire logical state with the graphical interface
+     * in a single pass over the 64 squares: background reset, selection/legal-move
+     * highlighting, and piece drawing are all applied per-square in the correct
+     * order so that highlights never overwrite piece icons.
      */
     public void updateView() {
         if (view == null) {
             return;
         }
 
-        // Reset the color of all the squares.
-        for (int x = 0; x < Position.BOARD_SIZE; x++) {
-            for (int y = 0; y < Position.BOARD_SIZE; y++) {
-                view.resetBackground(new Position(x, y));
-            }
-        }
-
-        // Apply highlights (selected square and legal moves)
+        final Set<Position> highlighted = new HashSet<>();
         if (selectedSquare.isPresent()) {
             final Position sel = selectedSquare.get();
-            view.highlightSquare(sel);
-            for (final Position legal : getLegalMovesFrom(sel)) {
-                view.highlightSquare(legal);
-            }
+            highlighted.add(sel);
+            highlighted.addAll(getLegalMovesFrom(sel));
         }
 
-        // Draw all the pieces strictly on top of the backgrounds and highlights.
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position pos = new Position(x, y);
+
+                view.resetBackground(pos);
+                if (highlighted.contains(pos)) {
+                    view.highlightSquare(pos);
+                }
+
                 final Optional<Piece> pieceOpt = board.getPieceAt(pos);
                 if (pieceOpt.isPresent()) {
                     view.drawPiece(pos, pieceOpt.get().getFenChar());
@@ -149,17 +171,11 @@ public final class Controller {
     private void handleSquareClick(final Position pos) {
         if (selectedSquare.isPresent()) {
             final Position from = selectedSquare.get();
-            final Optional<Piece> pieceOpt = board.getPieceAt(from);
 
-            boolean isPromotionMove = false;
-            if (pieceOpt.isPresent()) {
-                final char type = Character.toLowerCase(pieceOpt.get().getFenChar());
-                // Robust check to detect clicks on a promotion box
-                if (type == 'p' && (pos.y() == 0 || pos.y() == BLACK_HOME_ROW) 
-                        && GameRules.getLegalMoves(from, board).contains(pos)) {
-                    isPromotionMove = true;
-                }
-            }
+            final boolean isPromotionMove = board.getPieceAt(from)
+                    .filter(piece -> GameRules.isPromotion(pos, piece))
+                    .filter(piece -> GameRules.getLegalMoves(from, board).contains(pos))
+                    .isPresent();
 
             if (isPromotionMove) {
                 final boolean isWhite = board.getActiveColor() == 'w';
@@ -180,7 +196,7 @@ public final class Controller {
             updateView();
         } else {
             if (view != null) {
-                JOptionPane.showMessageDialog(null, "Nessuna mossa da annullare!", "Undo Move", 
+                JOptionPane.showMessageDialog(null, "Nessuna mossa da annullare!", "Undo Move",
                         JOptionPane.WARNING_MESSAGE);
             }
         }
@@ -439,6 +455,41 @@ public final class Controller {
         return outcome;
     }
 
+    /**
+     * Asks the connected {@link AuraEngine} for the best move for the side currently to move,
+     * plays it through the same {@link #selectSquare(Position)} pipeline used for human moves
+     * (so undo history, castling, en passant and promotion are all handled identically),
+     * and refreshes the view.
+     *
+     * <p>Promotions chosen by the engine always default to a queen, matching
+     * {@link #DEFAULT_PROMOTION_CHOICE}, since {@link AuraEngine.Move} carries no
+     * promotion-piece information.</p>
+     *
+     * @return the outcome of the move actually played, or {@link MoveOutcome#NO_ENGINE_MOVE_AVAILABLE}
+     *         if no engine is connected or the engine found no legal move (checkmate/stalemate)
+     */
+    public MoveOutcome playEngineMove() {
+        if (engine == null) {
+            return MoveOutcome.NO_ENGINE_MOVE_AVAILABLE;
+        }
+
+        clearSelection();
+
+        final boolean isWhite = board.getActiveColor() == 'w';
+        final AuraEngine.Move bestMove = engine.findBestMove(board, isWhite);
+        if (bestMove == null) {
+            return MoveOutcome.NO_ENGINE_MOVE_AVAILABLE;
+        }
+
+        // Reuse the exact same two-step selection pipeline as a human click,
+        // so all side effects (rook shift, en passant, promotion, metadata) stay centralized.
+        selectSquare(bestMove.startPosition());
+        final MoveOutcome outcome = selectSquare(bestMove.finalPosition());
+
+        updateView();
+        return outcome;
+    }
+
     private MoveOutcome trySelect(final Position pos) {
         if (!belongsToActiveColor(pos)) {
             return MoveOutcome.INVALID_SELECTION;
@@ -490,7 +541,7 @@ public final class Controller {
 
         final boolean isCapture = !board.isEmpty(to) || isEnPassant;
         final boolean isPawnDoubleStep = isPawn && Math.abs(to.y() - from.y()) == PAWN_DOUBLE_STEP_DELTA;
-        final boolean isPromotion = isPawn && (to.y() == 0 || to.y() == BLACK_HOME_ROW);
+        final boolean isPromotion = GameRules.isPromotion(to, movingPiece);
 
         final String castlingRightsBefore = board.getCastlingRights();
         final int halfmoveClockBefore = board.getHalfmoveClock();
@@ -518,14 +569,10 @@ public final class Controller {
         board.setEnPassantTarget(isPawnDoubleStep
                 ? GameRules.positionToAlgebraic(new Position(from.x(), (from.y() + to.y()) / 2))
                 : "-");
-        board.setHalfmoveClock(isPawnMoveOrCapture(isPawn, isCapture) ? 0 : halfmoveClockBefore + 1);
+        board.setHalfmoveClock(isPawn || isCapture ? 0 : halfmoveClockBefore + 1);
         board.setFullmoveNumber(movingColor == PieceColor.BLACK ? fullmoveNumberBefore + 1 : fullmoveNumberBefore);
 
         return MoveOutcome.MOVE_PLAYED;
-    }
-
-    private boolean isPawnMoveOrCapture(final boolean isPawn, final boolean isCapture) {
-        return isPawn || isCapture;
     }
 
     private void moveCastlingRook(final Position kingDestination, final PieceColor color) {
