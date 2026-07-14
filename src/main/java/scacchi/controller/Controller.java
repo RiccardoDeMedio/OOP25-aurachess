@@ -1,8 +1,12 @@
 package scacchi.controller;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 
 import scacchi.model.gamerules.GameRules;
 import scacchi.model.board.Board;
@@ -11,6 +15,7 @@ import scacchi.model.board.SaveManager;
 import scacchi.model.pieces.Piece;
 import scacchi.model.pieces.PieceFactory;
 import scacchi.model.pieces.PieceColor;
+import scacchi.view.ChessView;
 
 /**
  * Manages game events: square selection, move validation and execution
@@ -33,6 +38,7 @@ public final class Controller {
     private final Board board;
     private final SaveManager saveManager = new SaveManager();
     private Optional<Position> selectedSquare = Optional.empty();
+    private ChessView view;
 
     /**
      * Post-click outcome.
@@ -69,8 +75,174 @@ public final class Controller {
         if (board == null) {
             throw new IllegalArgumentException("la board non può essere nulla");
         }
-
         this.board = board;
+    }
+
+    /**
+     * Create a controller with both board and view.
+     *
+     * @param board the current game board
+     * @param view the graphical representation
+     */
+    public Controller(final Board board, final ChessView view) {
+        this(board);
+        setView(view);
+    }
+
+    /**
+     * Set or update the view, wiring up all swing action listeners.
+     *
+     * @param view the chessboard graphical interface
+     */
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("EI_EXPOSE_REP2")
+    public void setView(final ChessView view) {
+        this.view = view;
+        if (this.view != null) {
+            this.view.setSquareClickListener(this::handleSquareClick);
+            this.view.setUndoListener(this::handleUndo);
+            this.view.setSaveListener(this::handleSave);
+            this.view.setLoadListener(this::handleLoad);
+            updateView();
+        }
+    }
+
+    /**
+     * Sincronizza l'intero stato logico della Board con l'interfaccia grafica.
+     * L'ordine delle operazioni (prima gli sfondi, poi i pezzi) garantisce
+     * che il disegno delle evidenziazioni non sovrascriva le icone.
+     */
+    public void updateView() {
+        if (view == null) {
+            return;
+        }
+
+        // 1. Resetta il colore di tutte le caselle
+        for (int x = 0; x < Position.BOARD_SIZE; x++) {
+            for (int y = 0; y < Position.BOARD_SIZE; y++) {
+                view.resetBackground(new Position(x, y));
+            }
+        }
+
+        // 2. Applica le evidenziazioni (casella selezionata e mosse legali)
+        if (selectedSquare.isPresent()) {
+            final Position sel = selectedSquare.get();
+            view.highlightSquare(sel);
+            for (final Position legal : getLegalMovesFrom(sel)) {
+                view.highlightSquare(legal);
+            }
+        }
+
+        // 3. Disegna tutti i pezzi rigorosamente SOPRA gli sfondi e le evidenziazioni
+        for (int x = 0; x < Position.BOARD_SIZE; x++) {
+            for (int y = 0; y < Position.BOARD_SIZE; y++) {
+                final Position pos = new Position(x, y);
+                final Optional<Piece> pieceOpt = board.getPieceAt(pos);
+                if (pieceOpt.isPresent()) {
+                    view.drawPiece(pos, pieceOpt.get().getFenChar());
+                } else {
+                    view.clearSquare(pos);
+                }
+            }
+        }
+    }
+
+    private void handleSquareClick(final Position pos) {
+        if (selectedSquare.isPresent()) {
+            final Position from = selectedSquare.get();
+            final Optional<Piece> pieceOpt = board.getPieceAt(from);
+
+            boolean isPromotionMove = false;
+            if (pieceOpt.isPresent()) {
+                final char type = Character.toLowerCase(pieceOpt.get().getFenChar());
+                // Controllo solido per rilevare il clic su una casella di promozione
+                if (type == 'p' && (pos.y() == 0 || pos.y() == BLACK_HOME_ROW) 
+                        && GameRules.getLegalMoves(from, board).contains(pos)) {
+                    isPromotionMove = true;
+                }
+            }
+
+            if (isPromotionMove) {
+                final boolean isWhite = board.getActiveColor() == 'w';
+                final char choice = view.askPromotionChoice(isWhite);
+                selectSquare(pos, choice);
+            } else {
+                selectSquare(pos);
+            }
+        } else {
+            selectSquare(pos);
+        }
+
+        updateView();
+    }
+
+    private void handleUndo() {
+        if (undoMove()) {
+            updateView();
+        } else {
+            if (view != null) {
+                JOptionPane.showMessageDialog(null, "Nessuna mossa da annullare!", "Undo Move", 
+                        JOptionPane.WARNING_MESSAGE);
+            }
+        }
+    }
+
+    private void handleSave() {
+        if (view == null) {
+            return;
+        }
+
+        final JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Salva Partita");
+        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+
+        final int userSelection = fileChooser.showSaveDialog(null);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            final File fileToSave = fileChooser.getSelectedFile();
+            try {
+                String path = fileToSave.getAbsolutePath();
+                if (!path.toLowerCase(Locale.ROOT).endsWith(".fen")) {
+                    path += ".fen";
+                }
+                saveGame(path);
+                JOptionPane.showMessageDialog(null, 
+                        "Partita salvata con successo!\n" + path, 
+                        "Salva Partita", 
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (final IOException e) {
+                JOptionPane.showMessageDialog(null, 
+                        "Errore durante il salvataggio: " + e.getMessage(), 
+                        "Errore", 
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void handleLoad() {
+        if (view == null) {
+            return;
+        }
+
+        final JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Seleziona il salvataggio da caricare");
+        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+
+        final int userSelection = fileChooser.showOpenDialog(null);
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            final File fileToLoad = fileChooser.getSelectedFile();
+            try {
+                loadGame(fileToLoad.getAbsolutePath());
+                updateView();
+                JOptionPane.showMessageDialog(null, 
+                        "Salvataggio caricato correttamente!", 
+                        "Carica Partita", 
+                        JOptionPane.INFORMATION_MESSAGE);
+            } catch (final IOException e) {
+                JOptionPane.showMessageDialog(null, 
+                        "Impossibile caricare il file: " + e.getMessage(), 
+                        "Errore", 
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     /**
@@ -187,13 +359,11 @@ public final class Controller {
 
         final Position currentlySelected = selectedSquare.get();
 
-        // I am cancelling the selection for the same piece.
         if (currentlySelected.equals(pos)) {
             selectedSquare = Optional.empty();
             return MoveOutcome.DESELECTED;
         }
 
-        // If I select another one of my pieces, it just selects it.
         if (belongsToActiveColor(pos)) {
             selectedSquare = Optional.of(pos);
             return MoveOutcome.SELECTED;
@@ -223,24 +393,23 @@ public final class Controller {
 
     /**
      * It validates and executes a move, handling special moves (castling, *en passant* capture, promotion)
-     * and directly updating board data (active color, castling rights, *en passant* target, 50-move counter, move number)
-     * via the `Board` class's dedicated setters, without needing to reconstruct the entire board from a FEN string.
+     * and directly updating board data.
      *
-     * @param from the starting position of the piece to be moved
-     * @param to the desired target position for the workpiece
-     * @param promotionChoice the character (es. 'q', 'r', 'b', 'n') indicating the piece chosen for a potential promotion
-     *                        (ignored if the move is not a promotion)
-     * @return a {@link MoveOutcome} representing the result of the move attempt
-     *              (es. successfully played, illegal, or king in check)
+     * @param from            the starting position of the piece
+     * @param to              the destination position of the piece
+     * @param promotionChoice the character representing the promotion piece if applicable
+     * @return the outcome of the executed move
      */
     private MoveOutcome executeMove(final Position from, final Position to, final char promotionChoice) {
         final Optional<Piece> movingPieceOpt = board.getPieceAt(from);
         if (movingPieceOpt.isEmpty()) {
             return MoveOutcome.INVALID_SELECTION;
         }
+
         final Piece movingPiece = movingPieceOpt.get();
         final PieceColor movingColor = movingPiece.getColor();
         final char movingType = Character.toLowerCase(movingPiece.getFenChar());
+
         final boolean isKing = movingType == 'k';
         final boolean isPawn = movingType == 'p';
 
@@ -250,25 +419,29 @@ public final class Controller {
             return pseudoLegal ? MoveOutcome.MOVE_LEAVES_KING_IN_CHECK : MoveOutcome.ILLEGAL_MOVE;
         }
 
-        // I calculate the move's characteristics before changing the board.
+        // Calcolo delle special rules prima che il pezzo modifichi la griglia
         final boolean isCastling = isKing && Math.abs(to.x() - from.x()) == CASTLING_KING_DELTA;
-        final boolean isEnPassant = isPawn && GameRules.isEnPassantCapture(from, to, board);
+
+        // Controllo en passant sganciato da GameRules (previene rimozioni errate per bug esterni)
+        final boolean isEnPassant = isPawn && from.x() != to.x() && board.isEmpty(to);
+
         final boolean isCapture = !board.isEmpty(to) || isEnPassant;
         final boolean isPawnDoubleStep = isPawn && Math.abs(to.y() - from.y()) == PAWN_DOUBLE_STEP_DELTA;
-        final boolean isPromotion = isPawn && GameRules.isPromotion(to, movingPiece);
+        final boolean isPromotion = isPawn && (to.y() == 0 || to.y() == BLACK_HOME_ROW);
+
         final String castlingRightsBefore = board.getCastlingRights();
         final int halfmoveClockBefore = board.getHalfmoveClock();
         final int fullmoveNumberBefore = board.getFullmoveNumber();
 
-        // Moves the main piece: the only call that records the history (undo)
+        // 1. Muove il pezzo sulla board (generando la entry di undo base)
         board.movePiece(from, to);
 
-        // I apply the side effects of special moves directly to the board, without adding further entries to the undo history
+        // 2. Applica gli effetti collaterali
         if (isCastling) {
             moveCastlingRook(to, movingColor);
         }
         if (isEnPassant) {
-            final Position capturedPawnPos = GameRules.enPassantCapturedPawnPosition(to, movingColor);
+            final Position capturedPawnPos = new Position(to.x(), from.y());
             board.removePiece(capturedPawnPos);
         }
         if (isPromotion) {
@@ -276,7 +449,7 @@ public final class Controller {
             board.putPiece(to, PieceFactory.createPiece(promotedFenChar));
         }
 
-        // I update the match metadata using the board's dedicated setters.
+        // 3. Aggiorna i metadati della scacchiera
         board.setActiveColor(movingColor == PieceColor.WHITE ? 'b' : 'w');
         board.setCastlingRights(updateCastlingRights(castlingRightsBefore, from, to, movingColor, isCastling));
         board.setEnPassantTarget(isPawnDoubleStep
@@ -292,13 +465,6 @@ public final class Controller {
         return isPawn || isCapture;
     }
 
-    /**
-     * Move the rook involved in the castling to its destination square using the Board's removePiece/putPiece methods;
-     * this does not add new entries to the undo history, as the move was already recorded once by movePiece for the king.
-     *
-     * @param kingDestination the square the king moved to, used to determine if the castling is kingside or queenside
-     * @param color the color of the player performing the castling
-     */
     private void moveCastlingRook(final Position kingDestination, final PieceColor color) {
         final int row = color == PieceColor.WHITE ? 0 : BLACK_HOME_ROW;
         if (kingDestination.x() == KINGSIDE_KING_DEST_COLUMN) {
@@ -308,14 +474,6 @@ public final class Controller {
         }
     }
 
-    /**
-     * Silently transfers the rook from its starting square to its destination during a castling move.
-     * By using {@code removePiece} and {@code putPiece} instead of {@code movePiece}, this operation
-     * prevents an unwanted extra state from being pushed to the undo history stack.
-     *
-     * @param from the original square of the rook before castling
-     * @param to the destination square where the rook will be placed after castling
-     */
     private void relocateRook(final Position from, final Position to) {
         board.getPieceAt(from).ifPresent((final Piece rook) -> {
             board.removePiece(from);
@@ -323,18 +481,6 @@ public final class Controller {
         });
     }
 
-    /**
-     * Computes the new castling rights string after a move is executed.
-     * It revokes castling availability if the king moves, if a rook leaves its starting square,
-     * or if a rook is captured on its starting square.
-     *
-     * @param rightsBefore the castling rights string prior to the move (es. "KQkq" or "-")
-     * @param from the starting square of the move, used to check if a rook moved away
-     * @param to the destination square of the move, used to check if a rook was captured
-     * @param movingColor the color of the player executing the move
-     * @param movedIsKing true if the moving piece is a king, which revokes both castling rights for that color
-     * @return the updated castling rights string, or "-" if neither player can castle anymore
-     */
     private String updateCastlingRights(final String rightsBefore, final Position from, final Position to,
             final PieceColor movingColor, final boolean movedIsKing) {
         String rights = rightsBefore;
@@ -351,16 +497,6 @@ public final class Controller {
         return rights.isEmpty() ? "-" : rights;
     }
 
-    /**
-     * Removes the specific castling right associated with a rook's starting square.
-     * This helper method ensures that if a rook moves from its home square, or is captured on it,
-     * the corresponding castling right (K, Q, k, or q) is permanently revoked.
-     *
-     * @param rights the current castling rights string
-     * @param pos the position being evaluated (can be the move's starting or destination square)
-     * @return the updated castling rights string with the specific right removed,
-     *              or the original string if the position is not a rook's starting square
-     */
     private String stripRightIfRookHomeSquare(final String rights, final Position pos) {
         if (pos.equals(new Position(QUEENSIDE_ROOK_COLUMN, 0))) {
             return rights.replace("Q", "");
