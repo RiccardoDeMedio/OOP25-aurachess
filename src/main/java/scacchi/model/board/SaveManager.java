@@ -119,4 +119,17 @@ public class SaveManager {
             }
         }
     }
+
+    /**
+     * Elimina un singolo file di salvataggio.
+     *
+     * @param fileName il nome del salvataggio da eliminare (senza estensione)
+     * @throws IOException se si verifica un errore durante l'eliminazione
+     */
+    public void deleteSave(final String fileName) throws IOException {
+        final Path dirPath = getSavesDirectory();
+        final Path filePath = dirPath.resolve(fileName + FEN_EXT);
+
+        Files.deleteIfExists(filePath);
+    }
 }
