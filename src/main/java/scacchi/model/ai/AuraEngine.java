@@ -7,6 +7,7 @@ import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.gamerules.GameRules;
 import scacchi.model.pieces.Piece;
+import scacchi.model.pieces.PieceColor;
 
 /**
  * Chess engine based on the minimax algorithm with alpha-beta pruning.
@@ -14,8 +15,6 @@ import scacchi.model.pieces.Piece;
  */
 public class AuraEngine {
 
-    private static final int BLACK = -1;
-    private static final int WHITE = 1;
     private static final int CHECK_POINTS = 50;
     //private static final int END_TABLE_SPOTS = 2;
     private static final int KING_TYPE_START = 10;
@@ -167,11 +166,11 @@ public class AuraEngine {
                     pieceValue = piece.piece().getValue()
                         + pieceTable[piece.piece().getType()][tableConversion(piece.position())];
                 }
-                totalScore = totalScore + pieceValue * piece.piece().getColor();
+                totalScore = totalScore + pieceValue * piece.piece().getColor().getSign();
             }
-        if (blackKingPos != null && GameRules.isSquareAttacked(blackKingPos, WHITE, board)) {
+        if (blackKingPos != null && GameRules.isSquareAttacked(blackKingPos, PieceColor.WHITE, board)) {
             totalScore = totalScore + CHECK_POINTS;
-        } else if (whiteKingPos != null && GameRules.isSquareAttacked(whiteKingPos, BLACK, board)) {
+        } else if (whiteKingPos != null && GameRules.isSquareAttacked(whiteKingPos, PieceColor.BLACK, board)) {
             totalScore = totalScore - CHECK_POINTS;
         }
         return totalScore;
@@ -331,7 +330,7 @@ public class AuraEngine {
         final List<Move> allPossibleMoves = new ArrayList<>();
         for (final PlacedPiece placedPiece : allPieces) {
             if (isWhite) {
-                if (placedPiece.piece.getColor() == 1) {
+                if (placedPiece.piece.getColor().getSign() == 1) {
                     final Set<Position> finalPositions = GameRules.getLegalMoves(placedPiece.position, board);
                     for (final Position finalPosition : finalPositions) {
                         final Move move = new Move(placedPiece.position, finalPosition);
@@ -339,7 +338,7 @@ public class AuraEngine {
                     }
                 }
             } else {
-                if (placedPiece.piece.getColor() == -1) {
+                if (placedPiece.piece.getColor().getSign() == -1) {
                     final Set<Position> finalPositions = GameRules.getLegalMoves(placedPiece.position, board);
                     for (final Position finalPosition : finalPositions) {
                         final Move move = new Move(placedPiece.position, finalPosition);

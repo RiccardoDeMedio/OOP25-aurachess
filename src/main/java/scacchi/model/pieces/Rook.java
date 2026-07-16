@@ -11,15 +11,15 @@ public final class Rook extends AbstractSlidingPiece {
     /**
      * Constructor.
      *
-     * @param color 1 for white, -1 for black
+     * @param color the color of the piece
      */
-    public Rook(final int color) {
-        super(color, ROOK_VALUE, color == 1 ? WHITE_ROOK_TYPE : BLACK_ROOK_TYPE);
+    public Rook(final PieceColor color) {
+        super(color, ROOK_VALUE, color == PieceColor.WHITE ? WHITE_ROOK_TYPE : BLACK_ROOK_TYPE);
     }
 
     @Override
     public char getFenChar() {
-        return this.getColor() == 1 ? 'R' : 'r';
+        return this.getColor() == PieceColor.WHITE ? 'R' : 'r';
     }
 
     @Override
