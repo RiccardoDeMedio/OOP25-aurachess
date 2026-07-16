@@ -696,7 +696,7 @@ public final class Controller {
                     "Benvenuto in AuraScacchi!\nCome vuoi iniziare?",
                     "Menu Avvio",
                     JOptionPane.YES_NO_CANCEL_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
+                    JOptionPane.PLAIN_MESSAGE,
                     null,
                     options,
                     options[0]
