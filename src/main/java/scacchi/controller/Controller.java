@@ -2,6 +2,10 @@ package scacchi.controller;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -37,12 +41,15 @@ public final class Controller {
     private static final int BLACK_HOME_ROW = 7;
     private static final String LOAD_GAME_TITLE = "Carica Partita";
     private static final String ERROR_TITLE = "Errore";
+    private static final String DELETE_SAVES_TITLE = "Elimina Salvataggi";
+    private static final String DELETE_ALL_OPTION = "--- Elimina TUTTI i salvataggi ---";
 
     private final Board board;
     private final SaveManager saveManager = new SaveManager();
     private Optional<Position> selectedSquare = Optional.empty();
     private ChessView view;
     private AuraEngine engine;
+    private int currentDifficulty = 3; // Default difficulty level
 
     /**
      * Post-click outcome.
@@ -120,6 +127,9 @@ public final class Controller {
      */
     public void setEngine(final AuraEngine engine) {
         this.engine = engine;
+        if (engine != null) {
+            this.currentDifficulty = engine.getDepth();
+        }
     }
 
     /**
@@ -207,7 +217,7 @@ public final class Controller {
             return;
         }
 
-        // It simply asks for the name via a text pop-up.
+        // Ask the user for the base save name via a text pop-up
         final String inputName = JOptionPane.showInputDialog(
                 null,
                 "Inserisci il nome del salvataggio:",
@@ -216,21 +226,29 @@ public final class Controller {
         );
 
         // If the user presses "Cancel" or closes the dialog, inputName is null.
-        // Let's also avoid empty names or names consisting solely of spaces.
         if (inputName != null && !inputName.isBlank()) {
-            String fileName = inputName.trim();
+            String baseName = inputName.trim();
 
-            // We remove ".fen" if the user typed it out of habit.
-            if (fileName.toLowerCase(Locale.ROOT).endsWith(".fen")) {
-                fileName = fileName.substring(0, fileName.length() - 4);
+            // Remove ".fen" if the user typed it out of habit
+            if (baseName.toLowerCase(Locale.ROOT).endsWith(".fen")) {
+                baseName = baseName.substring(0, baseName.length() - 4);
             }
 
             try {
+                // Generate full filename: Date_Time_ChosenName_Difficulty
+                final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm");
+                final String dateTime = LocalDateTime.now().format(formatter);
+
+                // Final format: e.g., "2026-07-15_14-30_MyGame_Diff-3"
+                final String fileName = dateTime + "_" + baseName + "_Diff-" + currentDifficulty;
+
                 saveGame(fileName);
+
                 JOptionPane.showMessageDialog(null,
-                        "Partita salvata con successo come: " + fileName,
+                        "Partita salvata con successo come:\n" + fileName,
                         "Salva Partita",
                         JOptionPane.INFORMATION_MESSAGE);
+
             } catch (final IOException e) {
                 JOptionPane.showMessageDialog(null,
                         "Errore durante il salvataggio: " + e.getMessage(),
@@ -240,22 +258,24 @@ public final class Controller {
         }
     }
 
+    // Method wired to the view button during gameplay (does nothing if cancelled)
     private void handleLoad() {
-        if (view == null) {
-            return;
-        }
+        processLoad();
+    }
 
-        final java.util.List<String> availableSaves = saveManager.getAvailableSaves();
+    // New method that processes loading and returns true if successful, false if cancelled
+    private boolean processLoad() {
+        final List<String> availableSaves = saveManager.getAvailableSaves();
 
         if (availableSaves.isEmpty()) {
             JOptionPane.showMessageDialog(null,
                     "Nessun salvataggio trovato!",
                     LOAD_GAME_TITLE,
                     JOptionPane.WARNING_MESSAGE);
-            return;
+            return false;
         }
 
-        // We display the pop-up with the drop-down menu.
+        // Display the pop-up with the drop-down menu.
         final String selectedSave = (String) JOptionPane.showInputDialog(
                 null,
                 "Seleziona il salvataggio da caricare:",
@@ -275,51 +295,87 @@ public final class Controller {
                         "Salvataggio caricato correttamente!",
                         LOAD_GAME_TITLE,
                         JOptionPane.INFORMATION_MESSAGE);
+                return true; // User loaded successfully
             } catch (final IOException e) {
                 JOptionPane.showMessageDialog(null,
                         "Impossibile caricare il file: " + e.getMessage(),
                         ERROR_TITLE,
                         JOptionPane.ERROR_MESSAGE);
+                return false; // An error occurred during loading
             }
         }
+
+        return false; // User pressed "Cancel"
     }
 
     private void handleDeleteSaves() {
-        if (view == null) {
-            return;
-        }
+        final List<String> availableSaves = saveManager.getAvailableSaves();
 
-        // We check if there is actually anything to delete.
-        if (saveManager.getAvailableSaves().isEmpty()) {
+        // Check if there is actually anything to delete.
+        if (availableSaves.isEmpty()) {
             JOptionPane.showMessageDialog(null,
                     "Non ci sono salvataggi da eliminare.",
-                    "Elimina Salvataggi",
+                    DELETE_SAVES_TITLE,
                     JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 
-        // We ask the user for confirmation.
-        final int confirm = JOptionPane.showConfirmDialog(
+        // Build the dropdown options: first "Delete ALL", then the list of specific saves
+        final List<String> deleteOptions = new ArrayList<>();
+        deleteOptions.add(DELETE_ALL_OPTION);
+        deleteOptions.addAll(availableSaves);
+
+        // Ask the user to select what they want to delete
+        final String selectedOption = (String) JOptionPane.showInputDialog(
                 null,
-                "Sei sicuro di voler eliminare TUTTI i salvataggi?\nQuesta azione è irreversibile.",
-                "Conferma Eliminazione",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE
+                "Seleziona il salvataggio da eliminare, oppure scegli di eliminarli tutti:",
+                "Gestione Salvataggi",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                deleteOptions.toArray(),
+                deleteOptions.getFirst()
         );
 
-        // If the user clicks "Yes", we proceed with the destruction.
-        if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                saveManager.deleteAllSaves();
-                JOptionPane.showMessageDialog(null,
-                        "Tutti i salvataggi sono stati eliminati con successo.",
-                        "Elimina Salvataggi",
-                        JOptionPane.INFORMATION_MESSAGE);
-            } catch (final IOException e) {
-                JOptionPane.showMessageDialog(null,
-                        "Errore durante l'eliminazione: " + e.getMessage(),
-                        ERROR_TITLE,
-                        JOptionPane.ERROR_MESSAGE);
+        // If the user made a selection (did not press Cancel)
+        if (selectedOption != null) {
+            final boolean deleteAll = DELETE_ALL_OPTION.equals(selectedOption);
+
+            // Customize the confirmation message based on the selection
+            final String confirmMessage = deleteAll
+                    ? "Sei sicuro di voler eliminare TUTTI i salvataggi?\nQuesta azione è irreversibile."
+                    : "Sei sicuro di voler eliminare il salvataggio:\n" + selectedOption + "?";
+
+            // Show the confirmation pop-up
+            final int confirm = JOptionPane.showConfirmDialog(
+                    null,
+                    confirmMessage,
+                    "Conferma Eliminazione",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            // Proceed with deletion if confirmed
+            if (confirm == JOptionPane.YES_OPTION) {
+                try {
+                    if (deleteAll) {
+                        saveManager.deleteAllSaves();
+                        JOptionPane.showMessageDialog(null,
+                                "Tutti i salvataggi sono stati eliminati con successo.",
+                                DELETE_SAVES_TITLE,
+                                JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        saveManager.deleteSave(selectedOption);
+                        JOptionPane.showMessageDialog(null,
+                                "Salvataggio eliminato con successo.",
+                                DELETE_SAVES_TITLE,
+                                JOptionPane.INFORMATION_MESSAGE);
+                    }
+                } catch (final IOException e) {
+                    JOptionPane.showMessageDialog(null,
+                            "Errore durante l'eliminazione: " + e.getMessage(),
+                            ERROR_TITLE,
+                            JOptionPane.ERROR_MESSAGE);
+                }
             }
         }
     }
@@ -621,5 +677,44 @@ public final class Controller {
             return rights.replace("k", "");
         }
         return rights;
+    }
+
+    /**
+     * Displays an initial menu to choose whether to start a new game or load an existing one.
+     * Reprompts the menu until a definitive choice is made or the application is exited.
+     */
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DM_EXIT")
+    public void showStartupPrompt() {
+        boolean startReady = false;
+
+        while (!startReady) {
+            final Object[] options = {"Nuova Partita", "Carica Vecchia Partita", "Gestisci Salvataggi"};
+
+            // Create a pop-up dialog with custom options
+            final int choice = JOptionPane.showOptionDialog(
+                    null,
+                    "Benvenuto in AuraScacchi!\nCome vuoi iniziare?",
+                    "Menu Avvio",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE,
+                    null,
+                    options,
+                    options[0]
+            );
+
+            // If the user clicks the top-right 'X' button, terminate the entire application
+            if (choice == JOptionPane.CLOSED_OPTION) {
+                System.exit(0);
+            } else if (choice == 1) { // Carica Vecchia Partita
+                final boolean success = processLoad();
+                if (success) {
+                    startReady = true; // File loaded successfully, exit the loop
+                }
+            } else if (choice == 2) { // Gestisci Salvataggi
+                handleDeleteSaves(); // Apre il menu, poi a fine operazione ricarica il Menu Avvio!
+            } else { // Nuova Partita
+                startReady = true;
+            }
+        }
     }
 }

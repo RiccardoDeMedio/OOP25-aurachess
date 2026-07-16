@@ -59,7 +59,7 @@ dependencies {
 
 application {
     // Define the main class for the application
-    mainClass.set("com.scacchi.Main")
+    mainClass.set("scacchi.AuraChess")
 }
 
 tasks.withType<Test>().configureEach {

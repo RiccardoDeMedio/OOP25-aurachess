@@ -49,6 +49,9 @@ public final class AuraChess {
             // through the very same selectSquare(...) pipeline used for human clicks.
             controller.setEngine(new AuraEngine(ENGINE_SEARCH_DEPTH));
 
+            // --- NUOVA LOGICA: Pop-up di avvio prima di aprire la finestra ---
+            controller.showStartupPrompt();
+
             // Show the game window
             view.showView();
         });
