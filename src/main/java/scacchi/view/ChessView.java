@@ -45,18 +45,32 @@ public interface ChessView {
     void resetBackground(Position pos);
 
     /**
-     * Imposta il listener per il pulsante di annullamento mossa (rollback).
+     * Set the listener for the move cancellation (rollback) button.
      *
-     * @param listener l'azione da eseguire quando viene premuto il tasto
+     * @param listener the action to perform when the key is pressed
      */
     void setUndoListener(Runnable listener);
 
     /**
-     * Imposta il listener per il pulsante di salvataggio.
+     * Set the listener for the save button.
      *
-     * @param listener l'azione da eseguire quando viene premuto il tasto
+     * @param listener the action to perform when the key is pressed
      */
     void setSaveListener(Runnable listener);
+
+    /**
+     * Set the listener for the load save button.
+     *
+     * @param listener the action to perform when the key is pressed
+     */
+    void setLoadListener(Runnable listener);
+
+    /**
+     * Set the listener for the delete all saves button.
+     *
+     * @param listener the action to perform when the key is pressed
+     */
+    void setDeleteSavesListener(Runnable listener);
 
     /**
      * Display a pop-up allowing the user to select the item for the promotion.

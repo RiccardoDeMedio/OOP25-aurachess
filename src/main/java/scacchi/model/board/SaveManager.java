@@ -14,6 +14,7 @@ public class SaveManager {
     // Name of the hidden folder that will contain all the game saves
     private static final String APP_DIRECTORY = ".aurascacchi";
     private static final String SAVES_SUBDIR = "saves";
+    private static final String FEN_EXT = ".fen";
 
     /**
      * Helper method to get the absolute path to the saves folder
@@ -44,7 +45,7 @@ public class SaveManager {
         final List<String> historyList = board.getChronologicalHistory();
 
         // We write all the lines in the .fen file
-        final Path filePath = dirPath.resolve(fileName + ".fen");
+        final Path filePath = dirPath.resolve(fileName + FEN_EXT);
         Files.write(filePath, historyList);
     }
 
@@ -57,7 +58,7 @@ public class SaveManager {
      */
     public void loadGame(final String fileName, final Board board) throws IOException {
         final Path dirPath = getSavesDirectory();
-        final Path filePath = dirPath.resolve(fileName + ".fen");
+        final Path filePath = dirPath.resolve(fileName + FEN_EXT);
 
         if (!Files.exists(filePath)) {
             // Added getAbsolutePath() so in case of error to sees exactly where the program looked for the file
@@ -68,5 +69,54 @@ public class SaveManager {
 
         // We pass the lines to the board to make the stack and restore the present board
         board.loadFullGame(lines);
+    }
+
+    /**
+     * Retrieves the names of all available save files (without the extension).
+     *
+     * @return a list of save names, empty if there are none.
+     */
+    public List<String> getAvailableSaves() {
+        final Path dirPath = getSavesDirectory();
+
+        if (!Files.exists(dirPath)) {
+            return java.util.Collections.emptyList();
+        }
+
+        try (java.util.stream.Stream<Path> paths = Files.list(dirPath)) {
+            return paths
+                    .map(Path::toFile)
+                    .map(java.io.File::getName)
+                    .filter(name -> name.toLowerCase(java.util.Locale.ROOT).endsWith(FEN_EXT))
+                    .map(name -> name.substring(0, name.length() - FEN_EXT.length()))
+                    .toList();
+        } catch (final IOException e) {
+            return java.util.Collections.emptyList();
+        }
+    }
+
+    /**
+     * Delete all save files (.fen) in the folder.
+     *
+     * @throws IOException if an error occurs while deleting a file
+     */
+    public void deleteAllSaves() throws IOException {
+        final Path dirPath = getSavesDirectory();
+
+        if (!Files.exists(dirPath)) {
+            return;
+        }
+
+        final java.io.File[] files = dirPath.toFile().listFiles(
+                (dir, name) -> name.toLowerCase(java.util.Locale.ROOT).endsWith(FEN_EXT)
+        );
+
+        if (files != null) {
+            for (final java.io.File file : files) {
+                if (!file.delete()) {
+                    throw new IOException("Impossibile eliminare il file: " + file.getName());
+                }
+            }
+        }
     }
 }
