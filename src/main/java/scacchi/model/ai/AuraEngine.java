@@ -16,7 +16,7 @@ import scacchi.model.pieces.PieceColor;
 public class AuraEngine {
 
     private static final int CHECK_POINTS = 50;
-    private static final int END_TABLE_SPOTS = 2;
+    //private static final int END_TABLE_SPOTS = 2;
     private static final int KING_TYPE_START = 10;
     private static final int KING_TYPE_END = 11;
     private static final List<Position> ALL_POSITIONS = buildAllPosition();
@@ -24,81 +24,81 @@ public class AuraEngine {
     private final int maxDepth;
     private final List<Integer> allEvalutations;
     private final int[][] pieceTable = {
-        {
-            0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25,
-            10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0,
-            0, 0, 0, 0, 0,
-        },
-        {
-            0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, -20, -20, 10, 10, 5, 5, -5, -10, 0, 0, -10, -5, 5, 0, 0, 0, 20, 20, 0,
-            0, 0, 5, 5, 10, 25, 25, 10, 5, 5, 10, 10, 20, 30, 30, 20, 10, 10, 50, 50, 50, 50, 50, 50, 50, 50, 0, 0, 0,
-            0, 0, 0, 0, 0,
-        },
-        {
-            -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30,
-            -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20,
-            0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50,
-        },
-        {
-            -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30,
-            -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20,
-            0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50,
-        },
-        {
-            -30, -10, -10, -10, -10, -10, -10, -30, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10,
-            5, 5, 10, 10, 5, 5, -10, -10, 0, 11, 15, 15, 11, 0, -10, -10, 10, 12, 15, 15, 12, 10, -10, -10, 10, 0, 0,
-            0, 0, 10, -10, -25, -10, -10, -10, -10, -10, -10, -25,
-        },
-        {
-            -25, -10, -10, -10, -10, -10, -10, -25, -10, 10, 0, 0, 0, 0, 10, -10, -10, 10, 12, 15, 15, 12, 10, -10,
-            -10, 0, 11, 15, 15, 11, 0, -10, -10, 5, 5, 10, 10, 5, 5, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10, 0, 0, 0,
-            0, 0, 0, -10, -30, -10, -10, -10, -10, -10, -10, -30,
-        },
-        {
-            0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, 10, 10, 10, 10, 5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0,
-            -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 5, 5, 0, 0, 0,
-        },
-        {
-            0, 0, 0, 5, 5, 0, 0, 0, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5,
-            -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 5, 10, 10, 10, 10, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0,
-        },
-        {
-            -20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5,
-            5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20,
-            -10, -10, -5, -5, -10, -10, -20,
-        },
-        {
-            -20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5,
-            5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20,
-            -10, -10, -5, -5, -10, -10, -20,
-        },
-        {
-            -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50,
-            -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30, -20,
-            -10, -20, -20, -20, -20, -20, -20, -10, 20, 20, 0, 0, 0, 0, 20, 20, 20, 30, 10, 0, 0, 10, 30, 20,
-        },
-        {
-            20, 30, 10, 0, 0, 10, 30, 20, 20, 20, 0, 0, 0, 0, 20, 20, -10, -20, -20, -20, -20, -20, -20, -10, -20,
-            -30, -30, -40, -40, -30, -30, -20, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50,
-            -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30,
-        },
-        {
-            -50, -40, -30, -20, -20, -30, -40, -50, -30, -20, -10, 0, 0, -10, -20, -30, -30, -10, 20, 30, 30, 20,
-            -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 20, 30, 30,
-            20, -10, -30, -30, -30, 0, 0, 0, 0, -30, -30, -50, -30, -30, -30, -30, -30, -30, -50,
-        },
-        {
-            -50, -30, -30, -30, -30, -30, -30, -50, -30, -30, 0, 0, 0, 0, -30, -30, -30, -10, 20, 30, 30, 20, -10,
-            -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 20, 30, 30, 20,
-            -10, -30, -30, -20, -10, 0, 0, -10, -20, -30, -50, -40, -30, -20, -20, -30, -40, -50,
-        },
+            {
+                    0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25,
+                    10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0,
+                    0, 0, 0, 0, 0,
+            },
+            {
+                    0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, -20, -20, 10, 10, 5, 5, -5, -10, 0, 0, -10, -5, 5, 0, 0, 0, 20, 20, 0,
+                    0, 0, 5, 5, 10, 25, 25, 10, 5, 5, 10, 10, 20, 30, 30, 20, 10, 10, 50, 50, 50, 50, 50, 50, 50, 50, 0, 0, 0,
+                    0, 0, 0, 0, 0,
+            },
+            {
+                    -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30,
+                    -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20,
+                    0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50,
+            },
+            {
+                    -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30,
+                    -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20,
+                    0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50,
+            },
+            {
+                    -30, -10, -10, -10, -10, -10, -10, -30, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10,
+                    5, 5, 10, 10, 5, 5, -10, -10, 0, 11, 15, 15, 11, 0, -10, -10, 10, 12, 15, 15, 12, 10, -10, -10, 10, 0, 0,
+                    0, 0, 10, -10, -25, -10, -10, -10, -10, -10, -10, -25,
+            },
+            {
+                    -25, -10, -10, -10, -10, -10, -10, -25, -10, 10, 0, 0, 0, 0, 10, -10, -10, 10, 12, 15, 15, 12, 10, -10,
+                    -10, 0, 11, 15, 15, 11, 0, -10, -10, 5, 5, 10, 10, 5, 5, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10, 0, 0, 0,
+                    0, 0, 0, -10, -30, -10, -10, -10, -10, -10, -10, -30,
+            },
+            {
+                    0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, 10, 10, 10, 10, 5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0,
+                    -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 5, 5, 0, 0, 0,
+            },
+            {
+                    0, 0, 0, 5, 5, 0, 0, 0, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5,
+                    -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 5, 10, 10, 10, 10, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0,
+            },
+            {
+                    -20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5,
+                    5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20,
+                    -10, -10, -5, -5, -10, -10, -20,
+            },
+            {
+                    -20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5,
+                    5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20,
+                    -10, -10, -5, -5, -10, -10, -20,
+            },
+            {
+                    -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50,
+                    -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30, -20,
+                    -10, -20, -20, -20, -20, -20, -20, -10, 20, 20, 0, 0, 0, 0, 20, 20, 20, 30, 10, 0, 0, 10, 30, 20,
+            },
+            {
+                    20, 30, 10, 0, 0, 10, 30, 20, 20, 20, 0, 0, 0, 0, 20, 20, -10, -20, -20, -20, -20, -20, -20, -10, -20,
+                    -30, -30, -40, -40, -30, -30, -20, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50,
+                    -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30,
+            },
+            {
+                    -50, -40, -30, -20, -20, -30, -40, -50, -30, -20, -10, 0, 0, -10, -20, -30, -30, -10, 20, 30, 30, 20,
+                    -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 20, 30, 30,
+                    20, -10, -30, -30, -30, 0, 0, 0, 0, -30, -30, -50, -30, -30, -30, -30, -30, -30, -50,
+            },
+            {
+                    -50, -30, -30, -30, -30, -30, -30, -50, -30, -30, 0, 0, 0, 0, -30, -30, -30, -10, 20, 30, 30, 20, -10,
+                    -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 20, 30, 30, 20,
+                    -10, -30, -30, -20, -10, 0, 0, -10, -20, -30, -50, -40, -30, -20, -20, -30, -40, -50,
+            },
     };
 
     private long nodesVisited;
 
     /**
      * Constructs a new AuraEngine.
-     * 
+     *
      * @param maxDepth maximum depth for minimax
      */
     public AuraEngine(final int maxDepth) {
@@ -109,7 +109,7 @@ public class AuraEngine {
 
     /**
      * Returns the max depth.
-     * 
+     *
      * @return depth
      */
     public int getDepth() {
@@ -143,58 +143,67 @@ public class AuraEngine {
         return index;
     }
 
-    private int evaluateBoard(final Board board) {
+    private int evaluateBoard(final Board board, final List<PlacedPiece> allPieces) {
         int totalScore = 0;
-        final List<PlacedPiece> allPieces = getAllPieces(board);
+        Position whiteKingPos = null;
+        Position blackKingPos = null;
         for (final PlacedPiece piece : allPieces) {
             final int pieceValue;
-            if (piece != null) {
-                if (piece.piece().getType() == KING_TYPE_START || piece.piece().getType() == KING_TYPE_END) {
-                    pieceValue = piece.piece().getValue()
-                        + pieceTable[piece.piece().getType() + END_TABLE_SPOTS][tableConversion(piece.position())];
-                } else {
-                    pieceValue = piece.piece().getValue()
+            if (piece.piece().getType() == KING_TYPE_START || piece.piece().getType() == KING_TYPE_END) {
+                pieceValue = piece.piece().getValue()
                         + pieceTable[piece.piece().getType()][tableConversion(piece.position())];
+                if (piece.piece.getType() == KING_TYPE_END) {
+                    blackKingPos = piece.position();
+                } else if (piece.piece.getType() == KING_TYPE_START) {
+                    whiteKingPos = piece.position();
                 }
-                final int colorMultiplier = piece.piece().getColor() == PieceColor.WHITE ? 1 : -1;
-                totalScore = totalScore + pieceValue * colorMultiplier;
+                /*
+                if is endgame
+                pieceValue = piece.piece().getValue()
+                + pieceTable[piece.piece().getType() + END_TABLE_SPOTS][tableConversion(piece.position())];
+                */
+            } else {
+                pieceValue = piece.piece().getValue()
+                        + pieceTable[piece.piece().getType()][tableConversion(piece.position())];
             }
+            totalScore = totalScore + pieceValue * piece.piece().getColor().getSign();
         }
-        if (GameRules.isKingInCheck(PieceColor.BLACK, board)) {
+        if (blackKingPos != null && GameRules.isSquareAttacked(blackKingPos, PieceColor.WHITE, board)) {
             totalScore = totalScore + CHECK_POINTS;
-        } else if (GameRules.isKingInCheck(PieceColor.WHITE, board)) {
+        } else if (whiteKingPos != null && GameRules.isSquareAttacked(whiteKingPos, PieceColor.BLACK, board)) {
             totalScore = totalScore - CHECK_POINTS;
         }
         return totalScore;
     }
 
     private int minimaxingAlfaBetaPruning(
-        final Board board,
-        final int depth,
-        final int alfa,
-        final int beta,
-        final boolean isMaximizingPlayer
+            final Board board,
+            final int depth,
+            final int alfa,
+            final int beta,
+            final boolean isMaximizingPlayer
     ) {
+        final List<PlacedPiece> pieces = getAllPieces(board);
         nodesVisited++;
         if (depth < 1) {
-            return evaluateBoard(board);
+            return evaluateBoard(board, pieces);
         }
-        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isMaximizingPlayer);
+        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isMaximizingPlayer, pieces);
         if (allPossibleMoves.isEmpty()) {
-            return evaluateBoard(board);
+            return evaluateBoard(board, pieces);
         }
         if (isMaximizingPlayer) {
             int maxEval = Integer.MIN_VALUE;
             int currentAlfa = alfa;
             for (final Move move : allPossibleMoves) {
                 final Board newBoard = new Board(board);
-                newBoard.movePiece(move.startPosition(), move.finalPosition());
+                newBoard.movePiece(move.startPosition, move.finalPosition);
                 final int eval = minimaxingAlfaBetaPruning(
-                    newBoard,
-                    depth - 1,
-                    currentAlfa,
-                    beta,
-                    !isMaximizingPlayer
+                        newBoard,
+                        depth - 1,
+                        currentAlfa,
+                        beta,
+                        !isMaximizingPlayer
                 );
                 maxEval = Math.max(eval, maxEval);
                 currentAlfa = Math.max(currentAlfa, eval);
@@ -208,13 +217,13 @@ public class AuraEngine {
             int currentBeta = beta;
             for (final Move move : allPossibleMoves) {
                 final Board newBoard = new Board(board);
-                newBoard.movePiece(move.startPosition(), move.finalPosition());
+                newBoard.movePiece(move.startPosition, move.finalPosition);
                 final int eval = minimaxingAlfaBetaPruning(
-                    newBoard,
-                    depth - 1,
-                    alfa,
-                    currentBeta,
-                    !isMaximizingPlayer
+                        newBoard,
+                        depth - 1,
+                        alfa,
+                        currentBeta,
+                        !isMaximizingPlayer
                 );
                 minEval = Math.min(eval, minEval);
                 currentBeta = Math.min(currentBeta, eval);
@@ -228,30 +237,31 @@ public class AuraEngine {
 
     /**
      * Finds the best move on the board.
-     * 
+     *
      * @param board current board
      * @param isWhite white turn flag
      * @return best move
      */
     public Move findBestMove(final Board board, final boolean isWhite) {
         int bestScore;
+        final List<PlacedPiece> pieces = getAllPieces(board);
         if (isWhite) {
             bestScore = Integer.MIN_VALUE;
         } else {
             bestScore = Integer.MAX_VALUE;
         }
         Move bestMove = null;
-        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isWhite);
+        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isWhite, pieces);
 
         for (final Move move : allPossibleMoves) {
             final Board newBoard = new Board(board);
-            newBoard.movePiece(move.startPosition(), move.finalPosition());
+            newBoard.movePiece(move.startPosition, move.finalPosition);
             final int boardScore = minimaxingAlfaBetaPruning(
-                newBoard,
-                maxDepth,
-                Integer.MIN_VALUE,
-                Integer.MAX_VALUE,
-                !isWhite
+                    newBoard,
+                    maxDepth,
+                    Integer.MIN_VALUE,
+                    Integer.MAX_VALUE,
+                    !isWhite
             );
             if (isWhite && boardScore > bestScore) {
                 bestScore = boardScore;
@@ -266,12 +276,14 @@ public class AuraEngine {
 
     private int calculateLoss(final Board board, final Move move, final boolean isWhite) {
         final Board newBoard = new Board(board);
-        newBoard.movePiece(move.startPosition(), move.finalPosition());
+        newBoard.movePiece(move.startPosition, move.finalPosition);
         final Move bestMove = findBestMove(board, isWhite);
         final Board bestBoard = new Board(board);
-        bestBoard.movePiece(bestMove.startPosition(), bestMove.finalPosition());
-        final int evaluationPlayerMove = evaluateBoard(newBoard);
-        final int evaluationBestMove = evaluateBoard(bestBoard);
+        bestBoard.movePiece(bestMove.startPosition, bestMove.finalPosition);
+        final List<PlacedPiece> newBoardPieces = getAllPieces(newBoard);
+        final List<PlacedPiece> bestBoardPieces = getAllPieces(bestBoard);
+        final int evaluationPlayerMove = evaluateBoard(newBoard, newBoardPieces);
+        final int evaluationBestMove = evaluateBoard(bestBoard, bestBoardPieces);
         int loss;
         final int minimum = 0;
         if (isWhite) {
@@ -285,7 +297,7 @@ public class AuraEngine {
 
     /**
      * Calculates precision.
-     * 
+     *
      * @param board board
      * @param move move
      * @param isWhite white flag
@@ -301,7 +313,7 @@ public class AuraEngine {
 
     /**
      * Returns average precision.
-     * 
+     *
      * @return average precision
      */
     public int averagePrecision() {
@@ -314,8 +326,7 @@ public class AuraEngine {
         return averagePrecision;
     }
 
-    private List<Move> getAllPossibleMoves(final Board board, final boolean isWhite) {
-        final List<PlacedPiece> allPieces = getAllPieces(board);
+    private List<Move> getAllPossibleMoves(final Board board, final boolean isWhite, final List<PlacedPiece> allPieces) {
         final List<Move> allPossibleMoves = new ArrayList<>();
         for (final PlacedPiece placedPiece : allPieces) {
             if (isWhite) {
@@ -336,12 +347,17 @@ public class AuraEngine {
                 }
             }
         }
+        allPossibleMoves.sort((m1, m2) -> {
+            final boolean firstCapture = board.getPieceAt(m1.finalPosition()).isPresent();
+            final boolean secondCapture = board.getPieceAt(m2.finalPosition()).isPresent();
+            return Boolean.compare(secondCapture, firstCapture);
+        });
         return allPossibleMoves;
     }
 
     /**
      * Returns nodes visited count.
-     * 
+     *
      * @return nodes visited
      */
     public long getNodesVisited() {
@@ -350,7 +366,7 @@ public class AuraEngine {
 
     /**
      * Record to register a single piece and its position.
-     * 
+     *
      * @param piece indicates which piece is in that position.
      * @param position indicates the square on the board.
      */
@@ -358,7 +374,7 @@ public class AuraEngine {
 
     /**
      * Record for a move with the starting position and final position.
-     * 
+     *
      * @param startPosition is the starting position.
      * @param finalPosition is the ending position.
      */

@@ -8,10 +8,23 @@ public enum PieceColor {
     /**
      * White piece.
      */
-    WHITE,
+    WHITE(1),
 
     /**
      * Black piece.
      */
-    BLACK
+    BLACK(-1);
+
+    private final int sign;
+
+    PieceColor(final int sign) {
+        this.sign = sign;
+    }
+
+    /**
+     * @return the sign of the piece
+     **/
+    public int getSign() {
+        return sign;
+    }
 }
