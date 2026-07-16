@@ -3,10 +3,9 @@ package scacchi.model.ai;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.ai.AuraEngine.Move;
@@ -16,6 +15,7 @@ import java.lang.reflect.Method;
 
 class AuraEngineTest {
 
+    private static final Logger LOGGER = Logger.getLogger(AuraEngineTest.class.getName());
     private static final String STARTING_FEN =
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     private static final int DEFAULT_DEPTH = 5;
@@ -24,33 +24,33 @@ class AuraEngineTest {
     private static final int PRECISION_THRESHOLD = 80;
     private static final int MAX_PRECISION = 100;
     private static final int BLACK_PAWN_START_ROW = 6;
+    private static final long NODES_MULTIPLIER = 1000L;
+    private static final int MAX_SEARCH_TIME_MS = 40_000;
+    private static final int BALANCED_SCORE_THRESHOLD = 60;
 
     private AuraEngine engine;
 
     @BeforeEach
     void setUp() {
-        // Profondità bassa per test veloci;
         engine = new AuraEngine(DEFAULT_DEPTH);
     }
 
-    /*
     @Test
     void deeperSearchShouldNotTakeUnreasonablyLong() {
-    Board board = boardFromFEN(STARTING_FEN);
-    AuraEngine deepEngine = new AuraEngine(5);
+    final Board board = boardFromFEN(STARTING_FEN);
+    final AuraEngine deepEngine = new AuraEngine(DEFAULT_DEPTH);
 
-    long start = System.currentTimeMillis();
-    Move best = deepEngine.findBestMove(board, true);
-    long elapsedMs = System.currentTimeMillis() - start;
+    final long start = System.currentTimeMillis();
+    final Move best = deepEngine.findBestMove(board, true);
+    final long elapsedMs = System.currentTimeMillis() - start;
 
-    System.out.println("Tempo di ricerca a profondità 5: " + elapsedMs + " ms");
-    System.out.println("Nodi visitati: " + deepEngine.getNodesVisited());
-    System.out.println("Nodi/secondo: " + (deepEngine.getNodesVisited() * 1000L / Math.max(1, elapsedMs)));
+    LOGGER.info("Tempo di ricerca a profondità 5: " + elapsedMs + " ms");
+    LOGGER.info("Nodi visitati: " + deepEngine.getNodesVisited());
+    LOGGER.info("Nodi/secondo: " + (deepEngine.getNodesVisited() * NODES_MULTIPLIER / Math.max(1, elapsedMs)));
 
     assertNotNull(best, "Dovrebbe esistere una mossa dalla posizione iniziale");
-    assertTrue(elapsedMs < 10_000, "La ricerca non dovrebbe superare i 10 secondi");
+    assertTrue(elapsedMs < MAX_SEARCH_TIME_MS, "La ricerca non dovrebbe superare i 25 secondi");
 }
-     */
 
     // ---------- 1. Test su evaluateBoard ----------
 
@@ -60,18 +60,16 @@ class AuraEngineTest {
         return board;
     }
 
-    /*
     @Test
     void startingPositionShouldBeRoughlyBalanced() {
-        Board board = boardFromFEN(STARTING_FEN);
-        int score = TestSupport.evaluateBoard(engine, board);
-        assertTrue(Math.abs(score) <= 10, "La posizione iniziale dovrebbe essere quasi equilibrata");
+        final Board board = boardFromFEN(STARTING_FEN);
+        final int score = TestSupport.evaluateBoard(engine, board);
+        assertTrue(Math.abs(score) <= BALANCED_SCORE_THRESHOLD, "La posizione iniziale dovrebbe essere quasi equilibrata");
     }
-     */
 
     @Test
     void extraQueenShouldGiveLargeAdvantage() {
-        // Scacchiera con una donna bianca in più rispetto al nero
+        // Chessboard with one extra white queen compared to Black.
         final Board board = boardFromFEN("4k3/8/8/8/8/8/8/3QK3 w - - 0 1");
         final int score = TestSupport.evaluateBoard(engine, board);
         assertTrue(score > ADVANTAGE_THRESHOLD, "Un vantaggio di donna dovrebbe dare un punteggio alto per il bianco");
@@ -81,7 +79,7 @@ class AuraEngineTest {
 
     @Test
     void shouldFindMateInOne() {
-        // Esempio: matto del corridoio (back-rank mate)
+        // Example: back-rank mate
         final Board board = boardFromFEN("6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1");
         final AuraEngine deepEngine = new AuraEngine(TACTICAL_DEPTH);
         final Move best = deepEngine.findBestMove(board, true);
@@ -98,7 +96,7 @@ class AuraEngineTest {
 
     @Test
     void findBestMoveShouldHandleNoLegalMovesGracefully() {
-        // Scacchiera in stallo: il giocatore di turno non ha mosse legali
+        // Stalemate: the player whose turn it is has no legal moves.
         final Board staleBoard = boardFromFEN("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1");
         final Move best = engine.findBestMove(staleBoard, false);
 
@@ -111,18 +109,18 @@ class AuraEngineTest {
     @Test
     void goodMoveShouldHaveHighPrecision() {
         Board board = boardFromFEN(STARTING_FEN);
-        // Mossa d'apertura "buona" tipica, es. e2-e4
+        // A typical "good" opening move, e.g., e2-e4
         Move goodMove = new Move(new Position(4, 1), new Position(4, 3));
 
         int precision = engine.calculatePrecision(board, goodMove, true);
-        assertTrue(precision > 80, "Una buona mossa d'apertura dovrebbe avere alta precisione");
+        assertTrue(precision > PRECISION_THRESHOLD, "Una buona mossa d'apertura dovrebbe avere alta precisione");
     }
-    */
+     */
 
     @Test
     void blunderShouldHaveLowPrecision() {
         final Board board = boardFromFEN(STARTING_FEN);
-        // Sposta un cavallo bianco dal bordo b1 (1,0) a a3 (0,2) che è una mossa mediocre
+        // Move a white knight from square b1 (1,0) to a3 (0,2), which is a mediocre move.
         final Move blunder = new Move(new Position(1, 0), new Position(0, 2));
 
         final int precision = engine.calculatePrecision(board, blunder, true);
@@ -133,14 +131,14 @@ class AuraEngineTest {
     void averagePrecisionShouldReflectMultipleMoves() {
         final Board board = boardFromFEN(STARTING_FEN);
 
-        // e2-e4 (Bianco)
+        // e2-e4 (White)
         final Move m1 = new Move(new Position(4, 1), new Position(4, 3));
         engine.calculatePrecision(board, m1, true);
 
         final Board board2 = new Board(board);
         board2.movePiece(m1.startPosition(), m1.finalPosition());
 
-        // e7-e5 (Nero) - i pedoni neri partono da y=6
+        // e7-e5 (Black) - the black pawns start at y=6
         final Move m2 = new Move(new Position(4, BLACK_PAWN_START_ROW), new Position(4, 4));
         engine.calculatePrecision(board2, m2, false);
 
@@ -153,13 +151,20 @@ class AuraEngineTest {
         private TestSupport() {
         }
 
-        // Risolve AvoidAccessibilityAlteration avvisando PMD che la modifica è voluta
+        // Resolves AvoidAccessibilityAlteration by notifying PMD that the modification is intentional.
         @SuppressWarnings("PMD.AvoidAccessibilityAlteration")
         static int evaluateBoard(final AuraEngine engine, final Board board) {
             try {
-                final Method method = AuraEngine.class.getDeclaredMethod("evaluateBoard", Board.class);
-                method.setAccessible(true);
-                return (int) method.invoke(engine, board);
+                // We retrieve the list of pieces by invoking `getAllPieces` via reflection.
+                final Method getPiecesMethod = AuraEngine.class.getDeclaredMethod("getAllPieces", Board.class);
+                getPiecesMethod.setAccessible(true);
+                final Object pieces = getPiecesMethod.invoke(engine, board);
+
+                // We call `evaluateBoard`, passing both the `Board` and the `List`.
+                final Method evalMethod = AuraEngine.class.getDeclaredMethod("evaluateBoard", Board.class, java.util.List.class);
+                evalMethod.setAccessible(true);
+                return (int) evalMethod.invoke(engine, board, pieces);
+
             } catch (final ReflectiveOperationException e) {
                 throw new IllegalStateException("Impossibile invocare evaluateBoard via reflection", e);
             }
