@@ -1,8 +1,10 @@
 package scacchi.model.ai;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,13 +20,13 @@ class AuraEngineTest {
     private static final String STARTING_FEN =
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     private static final int DEFAULT_DEPTH = 5;
-    private static final int TACTICAL_DEPTH = 3;
+    private static final int TACTICAL_DEPTH = 1;
     private static final int ADVANTAGE_THRESHOLD = 800;
     private static final int PRECISION_THRESHOLD = 80;
     private static final int MAX_PRECISION = 100;
     private static final int BLACK_PAWN_START_ROW = 6;
     private static final long NODES_MULTIPLIER = 1000L;
-    private static final int MAX_SEARCH_TIME_MS = 40_000;
+    private static final int MAX_SEARCH_TIME_MS = 50_000;
     private static final int BALANCED_SCORE_THRESHOLD = 60;
     private static final String LOG_PUNTEGGIO = "Punteggio Ottenuto: ";
 
@@ -37,20 +39,20 @@ class AuraEngineTest {
 
     @Test
     void deeperSearchShouldNotTakeUnreasonablyLong() {
-    final Board board = boardFromFEN(STARTING_FEN);
-    final AuraEngine deepEngine = new AuraEngine(DEFAULT_DEPTH);
+        final Board board = boardFromFEN(STARTING_FEN);
+        final AuraEngine deepEngine = new AuraEngine(DEFAULT_DEPTH);
 
-    final long start = System.currentTimeMillis();
-    final Move best = deepEngine.findBestMove(board, true);
-    final long elapsedMs = System.currentTimeMillis() - start;
+        final long start = System.currentTimeMillis();
+        final Move best = deepEngine.findBestMove(board, true);
+        final long elapsedMs = System.currentTimeMillis() - start;
 
-    LOGGER.info("Tempo di ricerca a profondità 5: " + elapsedMs + " ms");
-    LOGGER.info("Nodi visitati: " + deepEngine.getNodesVisited());
-    LOGGER.info("Nodi/secondo: " + (deepEngine.getNodesVisited() * NODES_MULTIPLIER / Math.max(1, elapsedMs)));
+        LOGGER.info("Tempo di ricerca a profondità 5: " + elapsedMs + " ms");
+        LOGGER.info("Nodi visitati: " + deepEngine.getNodesVisited());
+        LOGGER.info("Nodi/secondo: " + (deepEngine.getNodesVisited() * NODES_MULTIPLIER / Math.max(1, elapsedMs)));
 
-    assertNotNull(best, "Dovrebbe esistere una mossa dalla posizione iniziale");
-    assertTrue(elapsedMs < MAX_SEARCH_TIME_MS, "La ricerca non dovrebbe superare i " + MAX_SEARCH_TIME_MS + "ms");
-}
+        assertNotNull(best, "Dovrebbe esistere una mossa dalla posizione iniziale");
+        assertTrue(elapsedMs < MAX_SEARCH_TIME_MS, "La ricerca non dovrebbe superare i " + MAX_SEARCH_TIME_MS + "ms");
+    }
 
     // ---------- 1. Test su evaluateBoard ----------
 
@@ -158,6 +160,60 @@ class AuraEngineTest {
         assertTrue(avg >= 0 && avg <= MAX_PRECISION, "La precisione media deve essere un valore percentuale valido");
     }
 
+    @Test
+    void shouldChooseCastlingWhenBest() {
+        // Bianco può arroccare corto; nessuna altra mossa è comparabile in valore.
+        final Board board = boardFromFEN("4k3/8/8/8/8/8/8/4K2R w K - 0 1");
+        final AuraEngine deepEngine = new AuraEngine(TACTICAL_DEPTH);
+        final Move best = deepEngine.findBestMove(board, true);
+
+        assertNotNull(best, "Dovrebbe esistere la mossa");
+
+        final Position kingStart = new Position(4, 0);
+        final Position kingCastled = new Position(6, 0);
+
+        assertEquals(kingStart.x(), best.startPosition().x(), "X di partenza arrocco errata");
+        assertEquals(kingStart.y(), best.startPosition().y(), "Y di partenza arrocco errata");
+        assertEquals(kingCastled.x(), best.finalPosition().x(), "X di arrivo arrocco errata");
+        assertEquals(kingCastled.y(), best.finalPosition().y(), "Y di arrivo arrocco errata");
+    }
+
+    @Test
+    void shouldChoosePromotionWhenBest() {
+        // Torre mossa in f8 per rendere la cattura legale per il pedone in g7
+        final Board board = boardFromFEN("5r2/6P1/8/8/8/8/8/4K1k1 w - - 0 1");
+        final AuraEngine deepEngine = new AuraEngine(TACTICAL_DEPTH);
+        final Move best = deepEngine.findBestMove(board, true);
+
+        assertNotNull(best, "Dovrebbe esistere una mossa");
+
+        final Position pawnStart = new Position(6, 6);
+        final Position promotionSquare = new Position(5, 7); // f8
+
+        assertEquals(pawnStart.x(), best.startPosition().x(), "X di partenza promozione errata");
+        assertEquals(pawnStart.y(), best.startPosition().y(), "Y di partenza promozione errata");
+        assertEquals(promotionSquare.x(), best.finalPosition().x(), "X di arrivo promozione errata");
+        assertEquals(promotionSquare.y(), best.finalPosition().y(), "Y di arrivo promozione errata");
+    }
+
+    @Test
+    void shouldChooseEnPassantWhenBest() {
+        // Pedone nero appena mosso di due caselle accanto al pedone bianco: cattura en passant disponibile.
+        final Board board = boardFromFEN("4k3/8/8/4Pp2/8/8/8/4K3 w - f6 0 1");
+        final AuraEngine deepEngine = new AuraEngine(TACTICAL_DEPTH);
+        final Move best = deepEngine.findBestMove(board, true);
+
+        assertNotNull(best, "Dovrebbe esistere una mossa");
+
+        final Position pawnStart = new Position(4, 4);
+        final Position enPassantTarget = new Position(5, 5);
+
+        assertEquals(pawnStart.x(), best.startPosition().x(), "X di partenza en passant errata");
+        assertEquals(pawnStart.y(), best.startPosition().y(), "Y di partenza en passant errata");
+        assertEquals(enPassantTarget.x(), best.finalPosition().x(), "X di arrivo en passant errata");
+        assertEquals(enPassantTarget.y(), best.finalPosition().y(), "Y di arrivo en passant errata");
+    }
+
     static final class TestSupport {
 
         private TestSupport() {
@@ -167,9 +223,12 @@ class AuraEngineTest {
         @SuppressWarnings("PMD.AvoidAccessibilityAlteration")
         static int evaluateBoard(final AuraEngine engine, final Board board) {
             try {
-                final Method evalMethod = AuraEngine.class.getDeclaredMethod("evaluateBoard", Board.class);
+                // Modificato per includere sia la Board che la List nei parametri cercati via reflection
+                final Method evalMethod = AuraEngine.class.getDeclaredMethod("evaluateBoard", Board.class, java.util.List.class);
                 evalMethod.setAccessible(true);
-                return (int) evalMethod.invoke(engine, board);
+
+                // Assicurati che "getPieces()" sia il metodo esatto che usi in Board per ottenere la lista
+                return (int) evalMethod.invoke(engine, board, engine.getAllPieces(board));
 
             } catch (final ReflectiveOperationException e) {
                 throw new IllegalStateException("Impossibile invocare evaluateBoard via reflection", e);

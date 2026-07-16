@@ -8,6 +8,7 @@ import scacchi.model.board.Position;
 import scacchi.model.gamerules.GameRules;
 import scacchi.model.pieces.Piece;
 import scacchi.model.pieces.PieceColor;
+import scacchi.model.pieces.PieceFactory;
 
 /**
  * Chess engine based on the minimax algorithm with alpha-beta pruning.
@@ -19,6 +20,14 @@ public class AuraEngine {
     //private static final int END_TABLE_SPOTS = 2;
     private static final int KING_TYPE_START = 10;
     private static final int KING_TYPE_END = 11;
+    private static final int POSITION_DIFFERENCE_CASTLING = 2;
+    private static final int KING_SHORT_CASTLING = 6;
+    private static final int ROOK_SHORT_CASTLING_START = 7;
+    private static final int ROOK_SHORT_CASTLING_END = 5;
+    private static final int ROOK_LONG_CASTLING_START = 0;
+    private static final int ROOK_LONG_CASTLING_END = 3;
+    private static final char QUEEN_FEN_CHAR = 'q';
+    private static final List<Position> ALL_POSITIONS = buildAllPosition();
 
     private final int maxDepth;
     private final List<Integer> allEvalutations;
@@ -115,38 +124,69 @@ public class AuraEngine {
         return maxDepth;
     }
 
-    private int evaluateBoard(final Board board) {
+    private static List<Position> buildAllPosition() {
+        final List<Position> allPosition = new ArrayList<>();
+        for (int x = 0; x < 8; x++) {
+            for (int y = 0; y < 8; y++) {
+                allPosition.add(new Position(x, y));
+            }
+        }
+        return allPosition;
+    }
+
+    /**
+     * Obtains all currently active pieces placed on the board.
+     *
+     * @param board the current chess board
+     * @return a list of all placed pieces
+     */
+    protected List<PlacedPiece> getAllPieces(final Board board) {
+        final List<PlacedPiece> allPieces = new ArrayList<>();
+        final List<Position> allPosition = ALL_POSITIONS;
+        for (final Position position : allPosition) {
+            board.getPieceAt(position).ifPresent(piece -> {
+                allPieces.add(new PlacedPiece(piece, position));
+            });
+        }
+        return allPieces;
+    }
+
+    private int tableConversion(final Position position) {
+        final int index;
+        index = (position.y() * 8) + position.x();
+        return index;
+    }
+
+    private int evaluateBoard(final Board board, final List<PlacedPiece> allPieces) {
         int totalScore = 0;
         Position whiteKingPos = null;
         Position blackKingPos = null;
-
-        for (int x = 0; x < 8; x++) {
-            for (int y = 0; y < 8; y++) {
-                final Piece piece = board.getPieceFast(x, y);
-                if (piece == null) {
-                    continue;
+        for (final PlacedPiece piece : allPieces) {
+            final int pieceValue;
+            if (piece.piece().getType() == KING_TYPE_START || piece.piece().getType() == KING_TYPE_END) {
+                pieceValue = piece.piece().getValue()
+                        + pieceTable[piece.piece().getType()][tableConversion(piece.position())];
+                if (piece.piece().getType() == KING_TYPE_END) {
+                    blackKingPos = piece.position();
+                } else if (piece.piece().getType() == KING_TYPE_START) {
+                    whiteKingPos = piece.position();
                 }
-
-                final int pieceType = piece.getType();
-                final int tableIndex = (y * 8) + x;
-                final int pieceValue = piece.getValue() + pieceTable[pieceType][tableIndex];
-
-                if (pieceType == KING_TYPE_END) {
-                    blackKingPos = new Position(x, y);
-                } else if (pieceType == KING_TYPE_START) {
-                    whiteKingPos = new Position(x, y);
-                }
-
-                totalScore += pieceValue * piece.getColor().getSign();
+                /*
+                if is endgame
+                pieceValue = piece.piece().getValue()
+                + pieceTable[piece.piece().getType() + END_TABLE_SPOTS][tableConversion(piece.position())];
+                */
+            } else {
+                pieceValue = piece.piece().getValue()
+                        + pieceTable[piece.piece().getType()][tableConversion(piece.position())];
             }
+            totalScore = totalScore + pieceValue * piece.piece().getColor().getSign();
         }
-
         if (blackKingPos != null && GameRules.isSquareAttacked(blackKingPos, PieceColor.WHITE, board)) {
-            totalScore += CHECK_POINTS;
+            totalScore = totalScore + CHECK_POINTS;
         } else if (whiteKingPos != null && GameRules.isSquareAttacked(whiteKingPos, PieceColor.BLACK, board)) {
-            totalScore -= CHECK_POINTS;
+            totalScore = totalScore - CHECK_POINTS;
         }
-
         return totalScore;
     }
 
@@ -157,34 +197,28 @@ public class AuraEngine {
             final int beta,
             final boolean isMaximizingPlayer
     ) {
+        final List<PlacedPiece> pieces = getAllPieces(board);
         nodesVisited++;
         if (depth < 1) {
-            return evaluateBoard(board);
+            return evaluateBoard(board, pieces);
         }
-        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isMaximizingPlayer);
+        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isMaximizingPlayer, pieces);
         if (allPossibleMoves.isEmpty()) {
-            return evaluateBoard(board);
+            return evaluateBoard(board, pieces);
         }
         if (isMaximizingPlayer) {
             int maxEval = Integer.MIN_VALUE;
             int currentAlfa = alfa;
             for (final Move move : allPossibleMoves) {
-
-                // Make the move
-                final Piece captured = board.makeEngineMove(move.startPosition(), move.finalPosition());
-
-                // Descend into recursion
+                final Board newBoard = new Board(board);
+                applyMove(newBoard, move);
                 final int eval = minimaxingAlfaBetaPruning(
-                        board, // We're using the same board.
+                        newBoard,
                         depth - 1,
                         currentAlfa,
                         beta,
                         !isMaximizingPlayer
                 );
-
-                // Undo the move (Put everything back in place for the next cycle)
-                board.unmakeEngineMove(move.startPosition(), move.finalPosition(), captured);
-
                 maxEval = Math.max(eval, maxEval);
                 currentAlfa = Math.max(currentAlfa, eval);
                 if (beta <= currentAlfa) {
@@ -196,22 +230,15 @@ public class AuraEngine {
             int minEval = Integer.MAX_VALUE;
             int currentBeta = beta;
             for (final Move move : allPossibleMoves) {
-
-                // Make the move
-                final Piece captured = board.makeEngineMove(move.startPosition(), move.finalPosition());
-
-                // Descend into recursion
+                final Board newBoard = new Board(board);
+                applyMove(newBoard, move);
                 final int eval = minimaxingAlfaBetaPruning(
-                        board, // We're using the same board.
+                        newBoard,
                         depth - 1,
                         alfa,
                         currentBeta,
                         !isMaximizingPlayer
                 );
-
-                // Undo the move
-                board.unmakeEngineMove(move.startPosition(), move.finalPosition(), captured);
-
                 minEval = Math.min(eval, minEval);
                 currentBeta = Math.min(currentBeta, eval);
                 if (currentBeta <= alfa) {
@@ -231,30 +258,25 @@ public class AuraEngine {
      */
     public Move findBestMove(final Board board, final boolean isWhite) {
         int bestScore;
+        final List<PlacedPiece> pieces = getAllPieces(board);
         if (isWhite) {
             bestScore = Integer.MIN_VALUE;
         } else {
             bestScore = Integer.MAX_VALUE;
         }
         Move bestMove = null;
-        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isWhite);
+        final List<Move> allPossibleMoves = getAllPossibleMoves(board, isWhite, pieces);
 
         for (final Move move : allPossibleMoves) {
-
-            // Make the move
-            final Piece captured = board.makeEngineMove(move.startPosition(), move.finalPosition());
-
+            final Board newBoard = new Board(board);
+            applyMove(newBoard, move);
             final int boardScore = minimaxingAlfaBetaPruning(
-                    board, // We're using the same board.
+                    newBoard,
                     maxDepth,
                     Integer.MIN_VALUE,
                     Integer.MAX_VALUE,
                     !isWhite
             );
-
-            // Undo the move
-            board.unmakeEngineMove(move.startPosition(), move.finalPosition(), captured);
-
             if (isWhite && boardScore > bestScore) {
                 bestScore = boardScore;
                 bestMove = move;
@@ -267,19 +289,15 @@ public class AuraEngine {
     }
 
     private int calculateLoss(final Board board, final Move move, final boolean isWhite) {
-        // Let's find the best move, starting from the original chessboard.
+        final Board newBoard = new Board(board);
+        applyMove(newBoard, move);
         final Move bestMove = findBestMove(board, isWhite);
-
-        // We evaluate the move made by the player (by making and undoing the move).
-        final Piece capturedByPlayer = board.makeEngineMove(move.startPosition(), move.finalPosition());
-        final int evaluationPlayerMove = evaluateBoard(board);
-        board.unmakeEngineMove(move.startPosition(), move.finalPosition(), capturedByPlayer);
-
-        // We evaluate the best move found by the engine (by making and unmaking the move).
-        final Piece capturedByBest = board.makeEngineMove(bestMove.startPosition(), bestMove.finalPosition());
-        final int evaluationBestMove = evaluateBoard(board);
-        board.unmakeEngineMove(bestMove.startPosition(), bestMove.finalPosition(), capturedByBest);
-
+        final Board bestBoard = new Board(board);
+        applyMove(bestBoard, bestMove);
+        final List<PlacedPiece> newBoardPieces = getAllPieces(newBoard);
+        final List<PlacedPiece> bestBoardPieces = getAllPieces(bestBoard);
+        final int evaluationPlayerMove = evaluateBoard(newBoard, newBoardPieces);
+        final int evaluationBestMove = evaluateBoard(bestBoard, bestBoardPieces);
         int loss;
         final int minimum = 0;
         if (isWhite) {
@@ -322,31 +340,32 @@ public class AuraEngine {
         return averagePrecision;
     }
 
-    private List<Move> getAllPossibleMoves(final Board board, final boolean isWhite) {
+    private List<Move> getAllPossibleMoves(final Board board, final boolean isWhite, final List<PlacedPiece> allPieces) {
         final List<Move> allPossibleMoves = new ArrayList<>();
-        final PieceColor targetColor = isWhite ? PieceColor.WHITE : PieceColor.BLACK;
-
-        for (int x = 0; x < 8; x++) {
-            for (int y = 0; y < 8; y++) {
-                final Piece piece = board.getPieceFast(x, y);
-
-                if (piece != null && piece.getColor() == targetColor) {
-                    final Position startPos = new Position(x, y);
-                    final Set<Position> finalPositions = GameRules.getLegalMoves(startPos, board);
-
+        for (final PlacedPiece placedPiece : allPieces) {
+            if (isWhite) {
+                if (placedPiece.piece.getColor() == PieceColor.WHITE) {
+                    final Set<Position> finalPositions = GameRules.getLegalMoves(placedPiece.position, board);
                     for (final Position finalPosition : finalPositions) {
-                        allPossibleMoves.add(new Move(startPos, finalPosition));
+                        final Move move = new Move(placedPiece.position, finalPosition);
+                        allPossibleMoves.add(move);
+                    }
+                }
+            } else {
+                if (placedPiece.piece.getColor() == PieceColor.BLACK) {
+                    final Set<Position> finalPositions = GameRules.getLegalMoves(placedPiece.position, board);
+                    for (final Position finalPosition : finalPositions) {
+                        final Move move = new Move(placedPiece.position, finalPosition);
+                        allPossibleMoves.add(move);
                     }
                 }
             }
         }
-
         allPossibleMoves.sort((m1, m2) -> {
-            final boolean firstCapture = board.getPieceFast(m1.finalPosition().x(), m1.finalPosition().y()) != null;
-            final boolean secondCapture = board.getPieceFast(m2.finalPosition().x(), m2.finalPosition().y()) != null;
+            final boolean firstCapture = board.getPieceAt(m1.finalPosition()).isPresent();
+            final boolean secondCapture = board.getPieceAt(m2.finalPosition()).isPresent();
             return Boolean.compare(secondCapture, firstCapture);
         });
-
         return allPossibleMoves;
     }
 
@@ -358,6 +377,52 @@ public class AuraEngine {
     public long getNodesVisited() {
         return nodesVisited;
     }
+
+    private void applyMove(final Board board, final Move move) {
+        final Position startPosition = move.startPosition();
+        final Position finalPosition = move.finalPosition();
+        final Piece piece = board.getPieceAt(startPosition).get();
+        boolean isEnPassant = false;
+        Position capturedPawnPos = null;
+        if (Character.toLowerCase(piece.getFenChar()) == 'p'
+                && finalPosition.x() != startPosition.x()
+                && board.isEmpty(finalPosition)) {
+            isEnPassant = true;
+            capturedPawnPos = GameRules.enPassantCapturedPawnPosition(finalPosition, piece.getColor());
+        }
+        board.movePiece(startPosition, finalPosition);
+        final char type = Character.toLowerCase(piece.getFenChar());
+        final PieceColor color = piece.getColor();
+        if (type == 'k' && Math.abs(startPosition.x() - finalPosition.x()) == POSITION_DIFFERENCE_CASTLING) {
+            final int row = finalPosition.y();
+            if (finalPosition.x() == KING_SHORT_CASTLING) {
+                board.movePiece(
+                        new Position(ROOK_SHORT_CASTLING_START, row),
+                        new Position(ROOK_SHORT_CASTLING_END, row)
+                ); // Short Castling
+            } else {
+                board.movePiece(
+                        new Position(ROOK_LONG_CASTLING_START, row),
+                        new Position(ROOK_LONG_CASTLING_END, row)
+                ); // Long Castling
+            }
+        }
+        if (isEnPassant) {
+            board.removePiece(capturedPawnPos);
+        }
+        if (GameRules.isPromotion(finalPosition, piece)) {
+            final char promotion = GameRules.sanitizePromotionChoice(QUEEN_FEN_CHAR, color);
+            board.putPiece(finalPosition, PieceFactory.createPiece(promotion));
+        }
+    }
+
+    /**
+     * Record to register a single piece and its position.
+     *
+     * @param piece indicates which piece is in that position.
+     * @param position indicates the square on the board.
+     */
+    public record PlacedPiece(Piece piece, Position position) { }
 
     /**
      * Record for a move with the starting position and final position.
