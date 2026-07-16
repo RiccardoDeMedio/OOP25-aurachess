@@ -10,7 +10,6 @@ import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.ai.AuraEngine.Move;
 import scacchi.model.pieces.PieceColor;
-
 import java.lang.reflect.Method;
 
 class AuraEngineTest {
@@ -27,6 +26,7 @@ class AuraEngineTest {
     private static final long NODES_MULTIPLIER = 1000L;
     private static final int MAX_SEARCH_TIME_MS = 40_000;
     private static final int BALANCED_SCORE_THRESHOLD = 60;
+    private static final String LOG_PUNTEGGIO = "Punteggio Ottenuto: ";
 
     private AuraEngine engine;
 
@@ -49,7 +49,7 @@ class AuraEngineTest {
     LOGGER.info("Nodi/secondo: " + (deepEngine.getNodesVisited() * NODES_MULTIPLIER / Math.max(1, elapsedMs)));
 
     assertNotNull(best, "Dovrebbe esistere una mossa dalla posizione iniziale");
-    assertTrue(elapsedMs < MAX_SEARCH_TIME_MS, "La ricerca non dovrebbe superare i 25 secondi");
+    assertTrue(elapsedMs < MAX_SEARCH_TIME_MS, "La ricerca non dovrebbe superare i " + MAX_SEARCH_TIME_MS + "ms");
 }
 
     // ---------- 1. Test su evaluateBoard ----------
@@ -64,6 +64,9 @@ class AuraEngineTest {
     void startingPositionShouldBeRoughlyBalanced() {
         final Board board = boardFromFEN(STARTING_FEN);
         final int score = TestSupport.evaluateBoard(engine, board);
+
+        LOGGER.info(LOG_PUNTEGGIO + score);
+
         assertTrue(Math.abs(score) <= BALANCED_SCORE_THRESHOLD, "La posizione iniziale dovrebbe essere quasi equilibrata");
     }
 
@@ -72,6 +75,9 @@ class AuraEngineTest {
         // Chessboard with one extra white queen compared to Black.
         final Board board = boardFromFEN("4k3/8/8/8/8/8/8/3QK3 w - - 0 1");
         final int score = TestSupport.evaluateBoard(engine, board);
+
+        LOGGER.info(LOG_PUNTEGGIO + score);
+
         assertTrue(score > ADVANTAGE_THRESHOLD, "Un vantaggio di donna dovrebbe dare un punteggio alto per il bianco");
     }
 
@@ -124,6 +130,9 @@ class AuraEngineTest {
         final Move blunder = new Move(new Position(1, 0), new Position(0, 2));
 
         final int precision = engine.calculatePrecision(board, blunder, true);
+
+        LOGGER.info(LOG_PUNTEGGIO + precision);
+
         assertTrue(precision < PRECISION_THRESHOLD, "Una svista grave dovrebbe avere bassa precisione");
     }
 
@@ -143,6 +152,9 @@ class AuraEngineTest {
         engine.calculatePrecision(board2, m2, false);
 
         final int avg = engine.averagePrecision();
+
+        LOGGER.info(LOG_PUNTEGGIO + avg);
+
         assertTrue(avg >= 0 && avg <= MAX_PRECISION, "La precisione media deve essere un valore percentuale valido");
     }
 
@@ -155,15 +167,9 @@ class AuraEngineTest {
         @SuppressWarnings("PMD.AvoidAccessibilityAlteration")
         static int evaluateBoard(final AuraEngine engine, final Board board) {
             try {
-                // We retrieve the list of pieces by invoking `getAllPieces` via reflection.
-                final Method getPiecesMethod = AuraEngine.class.getDeclaredMethod("getAllPieces", Board.class);
-                getPiecesMethod.setAccessible(true);
-                final Object pieces = getPiecesMethod.invoke(engine, board);
-
-                // We call `evaluateBoard`, passing both the `Board` and the `List`.
-                final Method evalMethod = AuraEngine.class.getDeclaredMethod("evaluateBoard", Board.class, java.util.List.class);
+                final Method evalMethod = AuraEngine.class.getDeclaredMethod("evaluateBoard", Board.class);
                 evalMethod.setAccessible(true);
-                return (int) evalMethod.invoke(engine, board, pieces);
+                return (int) evalMethod.invoke(engine, board);
 
             } catch (final ReflectiveOperationException e) {
                 throw new IllegalStateException("Impossibile invocare evaluateBoard via reflection", e);
