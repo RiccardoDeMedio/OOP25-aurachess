@@ -17,89 +17,56 @@ import scacchi.model.pieces.PieceFactory;
 public class AuraEngine {
 
     private static final int CHECK_POINTS = 50;
-    //private static final int END_TABLE_SPOTS = 2;
-    private static final int KING_TYPE_START = 10;
-    private static final int KING_TYPE_END = 11;
+    //private static final int END_TABLE_SPOTS = 1;
+    private static final int KING_TYPE_START = 5;
     private static final int POSITION_DIFFERENCE_CASTLING = 2;
     private static final int KING_SHORT_CASTLING = 6;
     private static final int ROOK_SHORT_CASTLING_START = 7;
     private static final int ROOK_SHORT_CASTLING_END = 5;
     private static final int ROOK_LONG_CASTLING_START = 0;
     private static final int ROOK_LONG_CASTLING_END = 3;
+    private static final int MAX_Y = 7;
+    private static final int CHECKMATE_VALUE = 100_000;
     private static final char QUEEN_FEN_CHAR = 'q';
     private static final List<Position> ALL_POSITIONS = buildAllPosition();
 
     private final int maxDepth;
     private final List<Integer> allEvalutations;
     private final int[][] pieceTable = {
-            {
-                    0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25,
-                    10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0,
-                    0, 0, 0, 0, 0,
-            },
-            {
-                    0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, -20, -20, 10, 10, 5, 5, -5, -10, 0, 0, -10, -5, 5, 0, 0, 0, 20, 20, 0,
-                    0, 0, 5, 5, 10, 25, 25, 10, 5, 5, 10, 10, 20, 30, 30, 20, 10, 10, 50, 50, 50, 50, 50, 50, 50, 50, 0, 0, 0,
-                    0, 0, 0, 0, 0,
-            },
-            {
-                    -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30,
-                    -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20,
-                    0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50,
-            },
-            {
-                    -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30,
-                    -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20,
-                    0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50,
-            },
-            {
-                    -30, -10, -10, -10, -10, -10, -10, -30, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10,
-                    5, 5, 10, 10, 5, 5, -10, -10, 0, 11, 15, 15, 11, 0, -10, -10, 10, 12, 15, 15, 12, 10, -10, -10, 10, 0, 0,
-                    0, 0, 10, -10, -25, -10, -10, -10, -10, -10, -10, -25,
-            },
-            {
-                    -25, -10, -10, -10, -10, -10, -10, -25, -10, 10, 0, 0, 0, 0, 10, -10, -10, 10, 12, 15, 15, 12, 10, -10,
-                    -10, 0, 11, 15, 15, 11, 0, -10, -10, 5, 5, 10, 10, 5, 5, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10, 0, 0, 0,
-                    0, 0, 0, -10, -30, -10, -10, -10, -10, -10, -10, -30,
-            },
-            {
-                    0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, 10, 10, 10, 10, 5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0,
-                    -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 5, 5, 0, 0, 0,
-            },
-            {
-                    0, 0, 0, 5, 5, 0, 0, 0, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5,
-                    -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 5, 10, 10, 10, 10, 10, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0,
-            },
-            {
-                    -20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5,
-                    5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20,
-                    -10, -10, -5, -5, -10, -10, -20,
-            },
-            {
-                    -20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5,
-                    5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20,
-                    -10, -10, -5, -5, -10, -10, -20,
-            },
-            {
-                    -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50,
-                    -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30, -20,
-                    -10, -20, -20, -20, -20, -20, -20, -10, 20, 20, 0, 0, 0, 0, 20, 20, 20, 30, 10, 0, 0, 10, 30, 20,
-            },
-            {
-                    20, 30, 10, 0, 0, 10, 30, 20, 20, 20, 0, 0, 0, 0, 20, 20, -10, -20, -20, -20, -20, -20, -20, -10, -20,
-                    -30, -30, -40, -40, -30, -30, -20, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50,
-                    -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30,
-            },
-            {
-                    -50, -40, -30, -20, -20, -30, -40, -50, -30, -20, -10, 0, 0, -10, -20, -30, -30, -10, 20, 30, 30, 20,
-                    -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 20, 30, 30,
-                    20, -10, -30, -30, -30, 0, 0, 0, 0, -30, -30, -50, -30, -30, -30, -30, -30, -30, -50,
-            },
-            {
-                    -50, -30, -30, -30, -30, -30, -30, -50, -30, -30, 0, 0, 0, 0, -30, -30, -30, -10, 20, 30, 30, 20, -10,
-                    -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 20, 30, 30, 20,
-                    -10, -30, -30, -20, -10, 0, 0, -10, -20, -30, -50, -40, -30, -20, -20, -30, -40, -50,
-            },
+        {
+                0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25,
+                10, 5, 5, 0, 0, 0, 20, 20, 0, 0, 0, 5, -5, -10, 0, 0, -10, -5, 5, 5, 10, 10, -20, -20, 10, 10, 5, 0, 0, 0,
+                0, 0, 0, 0, 0,
+        },
+        {
+                -50, -40, -30, -30, -30, -30, -40, -50, -40, -20, 0, 0, 0, 0, -20, -40, -30, 0, 10, 15, 15, 10, 0, -30,
+                -30, 5, 15, 20, 20, 15, 5, -30, -30, 0, 15, 20, 20, 15, 0, -30, -30, 5, 10, 15, 15, 10, 5, -30, -40, -20,
+                0, 5, 5, 0, -20, -40, -50, -40, -30, -30, -30, -30, -40, -50,
+        },
+        {
+                -30, -10, -10, -10, -10, -10, -10, -30, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 10, 10, 5, 0, -10, -10,
+                5, 5, 10, 10, 5, 5, -10, -10, 0, 11, 15, 15, 11, 0, -10, -10, 10, 12, 15, 15, 12, 10, -10, -10, 10, 0, 0,
+                0, 0, 10, -10, -25, -10, -10, -10, -10, -10, -10, -25,
+        },
+        {
+                0, 0, 0, 0, 0, 0, 0, 0, 5, 10, 10, 10, 10, 10, 10, 5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0,
+                -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, -5, 0, 0, 0, 5, 5, 0, 0, 0,
+        },
+        {
+                -20, -10, -10, -5, -5, -10, -10, -20, -10, 0, 0, 0, 0, 0, 0, -10, -10, 0, 5, 5, 5, 5, 0, -10, -5, 0, 5,
+                5, 5, 5, 0, -5, 0, 0, 5, 5, 5, 5, 0, -5, -10, 5, 5, 5, 5, 5, 0, -10, -10, 0, 5, 0, 0, 0, 0, -10, -20,
+                -10, -10, -5, -5, -10, -10, -20,
+        },
+        {
+                -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -30, -40, -40, -50,
+                -50, -40, -40, -30, -30, -40, -40, -50, -50, -40, -40, -30, -20, -30, -30, -40, -40, -30, -30, -20,
+                -10, -20, -20, -20, -20, -20, -20, -10, 20, 20, 0, 0, 0, 0, 20, 20, 20, 30, 10, 0, 0, 10, 30, 20,
+        },
+        {
+                -50, -40, -30, -20, -20, -30, -40, -50, -30, -20, -10, 0, 0, -10, -20, -30, -30, -10, 20, 30, 30, 20,
+                -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 30, 40, 40, 30, -10, -30, -30, -10, 20, 30, 30,
+                20, -10, -30, -30, -30, 0, 0, 0, 0, -30, -30, -50, -30, -30, -30, -30, -30, -30, -50,
+        },
     };
 
     private long nodesVisited;
@@ -151,9 +118,13 @@ public class AuraEngine {
         return allPieces;
     }
 
-    private int tableConversion(final Position position) {
+    private int tableConversion(final Position position, final PieceColor color) {
         final int index;
-        index = (position.y() * 8) + position.x();
+        int y = position.y();
+        if (color == PieceColor.WHITE) {
+            y = MAX_Y - y;
+        }
+        index = (y * 8) + position.x();
         return index;
     }
 
@@ -163,12 +134,12 @@ public class AuraEngine {
         Position blackKingPos = null;
         for (final PlacedPiece piece : allPieces) {
             final int pieceValue;
-            if (piece.piece().getType() == KING_TYPE_START || piece.piece().getType() == KING_TYPE_END) {
+            if (piece.piece().getType() == KING_TYPE_START) {
                 pieceValue = piece.piece().getValue()
-                        + pieceTable[piece.piece().getType()][tableConversion(piece.position())];
-                if (piece.piece().getType() == KING_TYPE_END) {
+                        + pieceTable[piece.piece().getType()][tableConversion(piece.position(), piece.piece().getColor())];
+                if (piece.piece().getColor() == PieceColor.BLACK) {
                     blackKingPos = piece.position();
-                } else if (piece.piece().getType() == KING_TYPE_START) {
+                } else if (piece.piece().getColor() == PieceColor.WHITE) {
                     whiteKingPos = piece.position();
                 }
                 /*
@@ -178,7 +149,7 @@ public class AuraEngine {
                 */
             } else {
                 pieceValue = piece.piece().getValue()
-                        + pieceTable[piece.piece().getType()][tableConversion(piece.position())];
+                        + pieceTable[piece.piece().getType()][tableConversion(piece.position(), piece.piece().getColor())];
             }
             totalScore = totalScore + pieceValue * piece.piece().getColor().getSign();
         }
@@ -204,7 +175,21 @@ public class AuraEngine {
         }
         final List<Move> allPossibleMoves = getAllPossibleMoves(board, isMaximizingPlayer, pieces);
         if (allPossibleMoves.isEmpty()) {
-            return evaluateBoard(board, pieces);
+            Position kingPos = null;
+            final PieceColor myColor = isMaximizingPlayer ? PieceColor.WHITE : PieceColor.BLACK;
+            final PieceColor enemyColor = isMaximizingPlayer ? PieceColor.BLACK : PieceColor.WHITE;
+
+            for (final PlacedPiece p : pieces) {
+                if (p.piece().getType() == KING_TYPE_START && p.piece().getColor() == myColor) {
+                    kingPos = p.position();
+                    break;
+                }
+            }
+
+            if (kingPos != null && GameRules.isSquareAttacked(kingPos, enemyColor, board)) {
+                return isMaximizingPlayer ? -CHECKMATE_VALUE - depth : CHECKMATE_VALUE + depth;
+            }
+            return 0;
         }
         if (isMaximizingPlayer) {
             int maxEval = Integer.MIN_VALUE;

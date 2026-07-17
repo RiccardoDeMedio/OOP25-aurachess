@@ -5,8 +5,7 @@ package scacchi.model.pieces;
  */
 public final class Rook extends AbstractSlidingPiece {
     private static final int ROOK_VALUE = 500;
-    private static final int WHITE_ROOK_TYPE = 6;
-    private static final int BLACK_ROOK_TYPE = 7;
+    private static final int ROOK_TYPE = 3;
 
     /**
      * Constructor.
@@ -14,7 +13,7 @@ public final class Rook extends AbstractSlidingPiece {
      * @param color the color of the piece
      */
     public Rook(final PieceColor color) {
-        super(color, ROOK_VALUE, color == PieceColor.WHITE ? WHITE_ROOK_TYPE : BLACK_ROOK_TYPE);
+        super(color, ROOK_VALUE, ROOK_TYPE);
     }
 
     @Override
