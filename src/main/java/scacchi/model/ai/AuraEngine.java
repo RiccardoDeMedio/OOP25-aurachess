@@ -371,7 +371,7 @@ public class AuraEngine {
     private UndoInfo applyMove(final Board board, final Move move) {
         final Position startPosition = move.startPosition();
         final Position finalPosition = move.finalPosition();
-        final Piece piece = board.getPieceAt(startPosition).get();
+        final Piece piece = board.getPieceAt(startPosition).orElseThrow();
         Piece capturedPiece = board.getPieceFast(finalPosition.x(), finalPosition.y());
         boolean isEnPassant = false;
         Position capturedPawnPos = null;

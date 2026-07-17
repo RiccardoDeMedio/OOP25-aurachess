@@ -42,6 +42,7 @@ public final class Board implements ReadOnlyBoard {
      */
     public Board(final Board other) {
         this.state = other.state.clone();
+        // Note: The move history is not copied for performance reasons.
         this.activeColor = other.activeColor;
         this.castlingRights = other.castlingRights;
         this.enPassantTarget = other.enPassantTarget;

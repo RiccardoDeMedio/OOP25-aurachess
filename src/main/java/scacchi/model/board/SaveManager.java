@@ -107,15 +107,9 @@ public class SaveManager {
             return;
         }
 
-        final java.io.File[] files = dirPath.toFile().listFiles(
-                (dir, name) -> name.toLowerCase(java.util.Locale.ROOT).endsWith(FEN_EXT)
-        );
-
-        if (files != null) {
-            for (final java.io.File file : files) {
-                if (!file.delete()) {
-                    throw new IOException("Impossibile eliminare il file: " + file.getName());
-                }
+        try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(dirPath, "*" + FEN_EXT)) {
+            for (final Path entry : stream) {
+                Files.delete(entry);
             }
         }
     }
