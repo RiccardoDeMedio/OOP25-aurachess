@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 import scacchi.model.ai.AuraEngine;
 import scacchi.model.gamerules.GameRules;
 import scacchi.model.board.Board;
@@ -50,6 +51,16 @@ public final class Controller {
     private ChessView view;
     private AuraEngine engine;
     private int currentDifficulty = 3; // Default difficulty level
+
+    // --- CPU opponent state -------------------------------------------------
+    // computerColor: which side (if any) the engine plays automatically.
+    // null means automatic play is disabled; playEngineMove() can still be
+    // invoked manually regardless of this flag.
+    private PieceColor computerColor;
+    // volatile: written by the SwingWorker background thread (doInBackground/done
+    // run on different threads) and read from the EDT in handleSquareClick/handleUndo,
+    // so visibility across threads must be guaranteed without full synchronization.
+    private volatile boolean engineThinking;
 
     /**
      * Post-click outcome.
@@ -142,6 +153,48 @@ public final class Controller {
     }
 
     /**
+     * Enables automatic CPU play for the specified color: after every move that
+     * leaves the board on this color's turn (human move, undo, or load), the
+     * engine will play automatically on a background thread.
+     *
+     * <p>If it is already this color's turn when called, an engine move is
+     * triggered immediately.</p>
+     *
+     * @param color the color the engine should control
+     */
+    public void enableComputerOpponent(final PieceColor color) {
+        this.computerColor = color;
+        maybeTriggerEngineMove();
+    }
+
+    /**
+     * Disables automatic CPU play. {@link #playEngineMove()} can still be
+     * invoked manually regardless of this setting.
+     */
+    public void disableComputerOpponent() {
+        this.computerColor = null;
+    }
+
+    /**
+     * Returns whether automatic CPU play is currently enabled.
+     *
+     * @return true if an automatic computer opponent color has been set
+     */
+    public boolean isComputerOpponentEnabled() {
+        return computerColor != null;
+    }
+
+    /**
+     * Returns whether the engine is currently computing a move on a background thread.
+     * While true, the view should treat the board as temporarily non-interactive.
+     *
+     * @return true if an engine move is in progress
+     */
+    public boolean isEngineThinking() {
+        return engineThinking;
+    }
+
+    /**
      * Synchronizes the Board's entire logical state with the graphical interface
      * in a single pass over the 64 squares: background reset, selection/legal-move
      * highlighting, and piece drawing are all applied per-square in the correct
@@ -179,6 +232,12 @@ public final class Controller {
     }
 
     private void handleSquareClick(final Position pos) {
+        // Ignore human input while the engine is computing its move on a
+        // background thread, to avoid concurrent mutation of the board.
+        if (engineThinking) {
+            return;
+        }
+
         if (selectedSquare.isPresent()) {
             final Position from = selectedSquare.get();
 
@@ -199,11 +258,17 @@ public final class Controller {
         }
 
         updateView();
+        maybeTriggerEngineMove();
     }
 
     private void handleUndo() {
+        if (engineThinking) {
+            return;
+        }
+
         if (undoMove()) {
             updateView();
+            maybeTriggerEngineMove();
         } else {
             if (view != null) {
                 JOptionPane.showMessageDialog(null, "Nessuna mossa da annullare!", "Undo Move",
@@ -295,6 +360,7 @@ public final class Controller {
                         "Salvataggio caricato correttamente!",
                         LOAD_GAME_TITLE,
                         JOptionPane.INFORMATION_MESSAGE);
+                maybeTriggerEngineMove();
                 return true; // User loaded successfully
             } catch (final IOException e) {
                 JOptionPane.showMessageDialog(null,
@@ -521,6 +587,10 @@ public final class Controller {
      * {@link #DEFAULT_PROMOTION_CHOICE}, since {@link AuraEngine.Move} carries no
      * promotion-piece information.</p>
      *
+     * <p>This method is synchronous and safe to call directly (e.g. from a manual
+     * "CPU move" button) as well as from the background thread spawned by
+     * {@link #maybeTriggerEngineMove()}.</p>
+     *
      * @return the outcome of the move actually played, or {@link MoveOutcome#NO_ENGINE_MOVE_AVAILABLE}
      *         if no engine is connected or the engine found no legal move (checkmate/stalemate)
      */
@@ -544,6 +614,43 @@ public final class Controller {
 
         updateView();
         return outcome;
+    }
+
+    /**
+     * Triggers an asynchronous engine move when all of the following hold:
+     * an engine is connected, no engine move is already in progress, automatic
+     * CPU play is enabled, and it is currently the CPU-controlled color's turn.
+     *
+     * <p>The actual computation runs on a {@link SwingWorker} background thread
+     * via {@link #playEngineMove()}, keeping the Swing Event Dispatch Thread free
+     * while the (possibly slow) minimax search runs. Whether a legal move exists
+     * is determined entirely by {@link #playEngineMove()} itself (it already
+     * returns {@link MoveOutcome#NO_ENGINE_MOVE_AVAILABLE} on checkmate/stalemate,
+     * since {@link AuraEngine#findBestMove} returns {@code null} in that case) —
+     * no game-end logic is duplicated here.</p>
+     */
+    private void maybeTriggerEngineMove() {
+        if (!hasEngine() || engineThinking || computerColor == null) {
+            return;
+        }
+
+        final PieceColor active = board.getActiveColor() == 'w' ? PieceColor.WHITE : PieceColor.BLACK;
+        if (active != computerColor) {
+            return;
+        }
+
+        engineThinking = true;
+        new SwingWorker<MoveOutcome, Void>() {
+            @Override
+            protected MoveOutcome doInBackground() {
+                return playEngineMove();
+            }
+
+            @Override
+            protected void done() {
+                engineThinking = false;
+            }
+        }.execute();
     }
 
     private MoveOutcome trySelect(final Position pos) {

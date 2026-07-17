@@ -3,6 +3,7 @@ package scacchi;
 import scacchi.controller.Controller;
 import scacchi.model.ai.AuraEngine;
 import scacchi.model.board.Board;
+import scacchi.model.pieces.PieceColor;
 import scacchi.view.ChessView;
 import scacchi.view.ChessViewImpl;
 import javax.swing.SwingUtilities;
@@ -43,11 +44,13 @@ public final class AuraChess {
             final Controller controller = new Controller(board, view);
 
             // Connects Federico's CPU engine to the controller.
-            // Once set, controller.playEngineMove() can be invoked (e.g. after each
-            // human move, or from a future "CPU move" button in the view) to have
-            // AuraEngine pick and play the best move for the side currently on move,
-            // through the very same selectSquare(...) pipeline used for human clicks.
             controller.setEngine(new AuraEngine(ENGINE_SEARCH_DEPTH));
+
+            // Enables automatic CPU play for Black: after every human move (or
+            // undo/load that leaves it Black's turn), Controller.maybeTriggerEngineMove()
+            // fires the engine asynchronously via SwingWorker, then plays the move
+            // through the same selectSquare(...) pipeline used for human clicks.
+            controller.enableComputerOpponent(PieceColor.BLACK);
 
             // --- NUOVA LOGICA: Pop-up di avvio prima di aprire la finestra ---
             controller.showStartupPrompt();

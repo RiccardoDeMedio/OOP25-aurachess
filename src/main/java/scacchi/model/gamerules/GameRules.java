@@ -262,7 +262,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if the move is safe (the king is not in check after the move)
      */
-    public static boolean wouldLeaveKingInCheck(final Position from, final Position to,
+    public static boolean isMoveSafeForKing(final Position from, final Position to,
             final Position extraCapture, final ReadOnlyBoard board) {
         final Optional<Piece> movingPiece = board.getPieceAt(from);
         if (movingPiece.isEmpty()) {
@@ -411,7 +411,7 @@ public final class GameRules {
         final PieceColor color = piece.getColor();
         final char type = Character.toLowerCase(piece.getFenChar());
         for (final Position dest : piece.getValidMoves(from, board)) {
-            if (wouldLeaveKingInCheck(from, dest, null, board)) {
+            if (isMoveSafeForKing(from, dest, null, board)) {
                 legalMoves.add(dest);
             }
         }
@@ -422,7 +422,7 @@ public final class GameRules {
                 final int direction = color == PieceColor.WHITE ? 1 : -1;
                 if (ep.y() == from.y() + direction && Math.abs(ep.x() - from.x()) == 1) {
                     final Position capturedPawn = enPassantCapturedPawnPosition(ep, color);
-                    if (wouldLeaveKingInCheck(from, ep, capturedPawn, board)) {
+                    if (isMoveSafeForKing(from, ep, capturedPawn, board)) {
                         legalMoves.add(ep);
                     }
                 }
@@ -449,7 +449,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if the player has no legal moves available
      */
-    public static boolean hasAnyLegalMove(final PieceColor color, final ReadOnlyBoard board) {
+    public static boolean hasNoLegalMove(final PieceColor color, final ReadOnlyBoard board) {
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position pos = new Position(x, y);
@@ -471,7 +471,7 @@ public final class GameRules {
      * @return true in the event of checkmate
      */
     public static boolean isCheckmate(final PieceColor color, final ReadOnlyBoard board) {
-        return isKingInCheck(color, board) && hasAnyLegalMove(color, board);
+        return isKingInCheck(color, board) && hasNoLegalMove(color, board);
     }
 
     /**
@@ -482,7 +482,7 @@ public final class GameRules {
      * @return true in case of deadlock
      */
     public static boolean isStalemate(final PieceColor color, final ReadOnlyBoard board) {
-        return !isKingInCheck(color, board) && hasAnyLegalMove(color, board);
+        return !isKingInCheck(color, board) && hasNoLegalMove(color, board);
     }
 
     /**
