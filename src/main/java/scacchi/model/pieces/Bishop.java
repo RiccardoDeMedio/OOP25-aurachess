@@ -5,8 +5,7 @@ package scacchi.model.pieces;
  */
 public final class Bishop extends AbstractSlidingPiece {
     private static final int BISHOP_VALUE = 300;
-    private static final int WHITE_BISHOP_TYPE = 4;
-    private static final int BLACK_BISHOP_TYPE = 5;
+    private static final int BISHOP_TYPE = 2; 
 
     /**
      * Constructor.
@@ -14,7 +13,7 @@ public final class Bishop extends AbstractSlidingPiece {
      * @param color the color of the piece
      */
     public Bishop(final PieceColor color) {
-        super(color, BISHOP_VALUE, color == PieceColor.WHITE ? WHITE_BISHOP_TYPE : BLACK_BISHOP_TYPE);
+        super(color, BISHOP_VALUE, BISHOP_TYPE); 
     }
 
     @Override

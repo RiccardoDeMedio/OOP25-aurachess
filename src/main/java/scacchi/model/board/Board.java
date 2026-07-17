@@ -3,8 +3,6 @@ package scacchi.model.board;
 import scacchi.model.pieces.Piece;
 import scacchi.model.pieces.PieceFactory;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -19,8 +17,9 @@ public final class Board implements ReadOnlyBoard {
 
     private static final int BOARD_ROW = Position.BOARD_SIZE;
     private static final int BOARD_COLUMN = Position.BOARD_SIZE;
+    private static final int TOTAL_SQUARES = BOARD_ROW * BOARD_COLUMN;
 
-    private final Map<Position, Piece> state;
+    private final Piece[] state;
     private final Deque<String> history = new ArrayDeque<>();
 
     private char activeColor = 'w';         // 'w' for white, 'b' for black
@@ -33,7 +32,7 @@ public final class Board implements ReadOnlyBoard {
      * Constructor: Creates an empty board.
      */
     public Board() {
-        this.state = new HashMap<>();
+        this.state = new Piece[TOTAL_SQUARES];
     }
 
     /**
@@ -42,7 +41,8 @@ public final class Board implements ReadOnlyBoard {
      * @param other the board to copy.
      */
     public Board(final Board other) {
-        this.state = new HashMap<>(other.state);
+        this.state = other.state.clone();
+        // Note: The move history is not copied for performance reasons.
         this.activeColor = other.activeColor;
         this.castlingRights = other.castlingRights;
         this.enPassantTarget = other.enPassantTarget;
@@ -52,12 +52,12 @@ public final class Board implements ReadOnlyBoard {
 
     @Override
     public Optional<Piece> getPieceAt(final Position pos) {
-        return Optional.ofNullable(state.get(pos));
+        return Optional.ofNullable(state[toIndex(pos)]);
     }
 
     @Override
     public boolean isEmpty(final Position pos) {
-        return !state.containsKey(pos);
+        return state[toIndex(pos)] == null;
     }
 
     @Override
@@ -85,6 +85,14 @@ public final class Board implements ReadOnlyBoard {
         return this.fullmoveNumber;
     }
 
+    private int toIndex(final Position pos) {
+        return toIndex(pos.x(), pos.y());
+    }
+
+    private int toIndex(final int x, final int y) {
+        return y * BOARD_COLUMN + x;
+    }
+
     /**
      * Allows you to insert a piece in a specific position.
      *
@@ -92,7 +100,7 @@ public final class Board implements ReadOnlyBoard {
      * @param piece the piece that is moving
      */
     public void putPiece(final Position pos, final Piece piece) {
-        state.put(pos, piece);
+        state[toIndex(pos)] = piece;
     }
 
     /**
@@ -105,9 +113,13 @@ public final class Board implements ReadOnlyBoard {
         // Save the current state as a FEN string before moving
         history.push(this.toFEN());
 
-        final Piece pieceToMove = state.remove(from);
+        final int fromIndex = toIndex(from);
+        final int toIndex = toIndex(to);
+
+        final Piece pieceToMove = state[fromIndex];
+        state[fromIndex] = null;
         if (pieceToMove != null) {
-            state.put(to, pieceToMove);
+            state[toIndex] = pieceToMove;
         }
     }
 
@@ -181,7 +193,7 @@ public final class Board implements ReadOnlyBoard {
         }
 
         // Reset Board
-        this.state.clear();
+        java.util.Arrays.fill(this.state, null);
 
         for (int i = 0; i < BOARD_COLUMN; i++) {
             final int y = BOARD_ROW - 1 - i;
@@ -195,9 +207,8 @@ public final class Board implements ReadOnlyBoard {
                     x += Character.getNumericValue(c);
                 } else {
                     try {
-                        final Position pos = new Position(x, y);
                         final Piece piece = PieceFactory.createPiece(c);
-                        putPiece(pos, piece);
+                        state[toIndex(x, y)] = piece;
                         x++;
                     } catch (final IllegalArgumentException e) {
                         throw new IllegalArgumentException("Errore coordinata x:" + x + " y:" + y + " - " + e.getMessage(), e);
@@ -340,7 +351,55 @@ public final class Board implements ReadOnlyBoard {
      * @param pos the position from which to remove the piece
      */
     public void removePiece(final Position pos) {
-        state.remove(pos);
+        state[toIndex(pos)] = null;
     }
 
+    /**
+     * Executes an ultra-fast move for the engine, without saving the FEN.
+     * Returns any captured piece so that it can be restored.
+     *
+     * @param from the starting position
+     * @param to the destination location
+     * @return the captured piece, if any, or null
+     */
+    public Piece makeEngineMove(final Position from, final Position to) {
+        final int fromIndex = toIndex(from);
+        final int toIndex = toIndex(to);
+
+        final Piece capturedPiece = state[toIndex];
+        state[toIndex] = state[fromIndex];
+        state[fromIndex] = null;
+
+        return capturedPiece;
+    }
+
+    /**
+     * Undoes the move made by makeEngineMove.
+     *
+     * @param from the original starting position
+     * @param to the destination position from which to remove the piece
+     * @param capturedPiece the captured piece to be restored, or null
+     */
+    public void unmakeEngineMove(final Position from, final Position to, final Piece capturedPiece) {
+        final int fromIndex = toIndex(from);
+        final int toIndex = toIndex(to);
+
+        state[fromIndex] = state[toIndex];
+        state[toIndex] = capturedPiece;
+    }
+
+    /**
+     * Ultra-fast access for the Engine: returns the piece or null,
+     * avoiding the allocation of Optional objects in memory.
+     *
+     * @param x the chessboard column
+     * @param y the rank of the chessboard
+     * @return the piece at the coordinates, or null if empty or out of bounds
+     */
+    public Piece getPieceFast(final int x, final int y) {
+        if (!Position.isValid(x, y)) {
+            return null;
+        }
+        return state[toIndex(x, y)];
+    }
 }

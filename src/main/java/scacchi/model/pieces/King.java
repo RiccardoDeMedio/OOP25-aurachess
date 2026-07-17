@@ -6,8 +6,7 @@ package scacchi.model.pieces;
 public final class King extends AbstractSteppingPiece {
 
     private static final int VALUE = 2000;
-    private static final int WHITE_KING_TYPE = 10;
-    private static final int BLACK_KING_TYPE = 11;
+    private static final int KING_TYPE = 5;
 
     /**
      * Constructor.
@@ -15,7 +14,7 @@ public final class King extends AbstractSteppingPiece {
      * @param color the color of the piece
      */
     public King(final PieceColor color) {
-        super(color, VALUE, color == PieceColor.WHITE ? WHITE_KING_TYPE : BLACK_KING_TYPE);
+        super(color, VALUE, KING_TYPE);
     }
 
     @Override
