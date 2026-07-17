@@ -26,6 +26,7 @@ public class AuraEngine {
     private static final int ROOK_LONG_CASTLING_START = 0;
     private static final int ROOK_LONG_CASTLING_END = 3;
     private static final int MAX_Y = 7;
+    private static final int BEST_PRECISION = 100;
     private static final int CHECKMATE_VALUE = 100_000;
     private static final char QUEEN_FEN_CHAR = 'q';
     private static final List<Position> ALL_POSITIONS = buildAllPosition();
@@ -305,7 +306,7 @@ public class AuraEngine {
     public int calculatePrecision(final Board board, final Move move, final boolean isWhite) {
         final int loss = calculateLoss(board, move, isWhite);
         final int minimum = 0;
-        final int precision = Math.max(minimum, 100 - loss);
+        final int precision = Math.max(minimum, BEST_PRECISION - loss);
         allEvalutations.add(precision);
         return precision;
     }
@@ -316,6 +317,9 @@ public class AuraEngine {
      * @return average precision
      */
     public int averagePrecision() {
+        if (allEvalutations.isEmpty()) {
+            return BEST_PRECISION / 2;
+        }
         final int averagePrecision;
         int totalPrecision = 0;
         for (final Integer precision : allEvalutations) {
@@ -375,18 +379,18 @@ public class AuraEngine {
             isEnPassant = true;
             capturedPawnPos = GameRules.enPassantCapturedPawnPosition(finalPosition, piece.getColor());
         }
-        board.movePiece(startPosition, finalPosition);
+        board.makeEngineMove(startPosition, finalPosition);
         final char type = Character.toLowerCase(piece.getFenChar());
         final PieceColor color = piece.getColor();
         if (type == 'k' && Math.abs(startPosition.x() - finalPosition.x()) == POSITION_DIFFERENCE_CASTLING) {
             final int row = finalPosition.y();
             if (finalPosition.x() == KING_SHORT_CASTLING) {
-                board.movePiece(
+                board.makeEngineMove(
                         new Position(ROOK_SHORT_CASTLING_START, row),
                         new Position(ROOK_SHORT_CASTLING_END, row)
                 ); // Short Castling
             } else {
-                board.movePiece(
+                board.makeEngineMove(
                         new Position(ROOK_LONG_CASTLING_START, row),
                         new Position(ROOK_LONG_CASTLING_END, row)
                 ); // Long Castling
