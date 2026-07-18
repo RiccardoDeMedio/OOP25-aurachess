@@ -503,16 +503,18 @@ public final class Controller {
     }
 
     /**
-     * Undoes the last move played, if any, and clears the current selection.
+     * Annulla l'ultima mossa effettuata.
      *
-     * @return true if the move was cancelled, false otherwise
+     * @return true se almeno una semi-mossa è stata annullata, false se la
+     *         cronologia era già vuota
      */
     public boolean undoMove() {
-        final boolean rolledBack = board.rollback();
-        if (rolledBack) {
+        final boolean firstRollback = board.rollback();
+        if (firstRollback) {
+            board.rollback();
             clearSelection();
         }
-        return rolledBack;
+        return firstRollback;
     }
 
     /**
@@ -696,6 +698,9 @@ public final class Controller {
             return pseudoLegal ? MoveOutcome.MOVE_LEAVES_KING_IN_CHECK : MoveOutcome.ILLEGAL_MOVE;
         }
 
+        //aggiornamento aurometro
+        trackMovePrecision(from, to, movingColor);
+
         // Calculation of special rules before the piece modifies the grid.
         final boolean isCastling = isKing && Math.abs(to.x() - from.x()) == CASTLING_KING_DELTA;
 
@@ -824,4 +829,33 @@ public final class Controller {
             }
         }
     }
+
+    /**
+     * Calcola la precisione della mossa appena selezionata (se un motore è
+     * collegato e la mossa non è quella automatica della CPU) e aggiorna la
+     * barra nella view con la precisione media aggiornata.
+     *
+     * <p>Va chiamato PRIMA di {@code board.movePiece(from, to)}, perché
+     * {@link AuraEngine#calculatePrecision} simula e annulla la mossa
+     * internamente usando lo stato attuale della board.</p>
+     *
+     * @param from posizione di partenza della mossa
+     * @param to posizione di destinazione della mossa
+     * @param movingColor colore di chi sta muovendo
+     */
+    private void trackMovePrecision(final Position from, final Position to, final PieceColor movingColor) {
+        if (!hasEngine()) {
+            return;
+        }
+        if (computerColor != null && movingColor == computerColor) {
+            return; // non tracciamo la precisione delle mosse giocate dalla CPU
+        }
+        final AuraEngine.Move humanMove = new AuraEngine.Move(from, to);
+        engine.calculatePrecision(board, humanMove, movingColor == PieceColor.WHITE);
+        if (view != null) {
+            view.updatePrecisionBar(engine.averagePrecision());
+        }
+    }
+
 }
+

@@ -84,4 +84,12 @@ public interface ChessView {
      * Makes the game window visible.
      */
     void showView();
+
+    /**
+     * Aggiorna la barra che rappresenta visivamente quanto precisamente sta
+     * giocando il lato attivo, basata su {@code AuraEngine.averagePrecision()}.
+     *
+     * @param precision valore di precisione media, da 0 (peggiore) a 100 (migliore)
+     */
+    void updatePrecisionBar(int precision);
 }
