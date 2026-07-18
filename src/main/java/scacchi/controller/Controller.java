@@ -247,6 +247,8 @@ public final class Controller {
             return;
         }
 
+        final MoveOutcome outcome;
+
         if (selectedSquare.isPresent()) {
             final Position from = selectedSquare.get();
 
@@ -258,16 +260,20 @@ public final class Controller {
             if (isPromotionMove) {
                 final boolean isWhite = board.getActiveColor() == 'w';
                 final char choice = view.askPromotionChoice(isWhite);
-                selectSquare(pos, choice);
+                outcome = selectSquare(pos, choice);
             } else {
-                selectSquare(pos);
+                outcome = selectSquare(pos);
             }
         } else {
-            selectSquare(pos);
+            outcome = selectSquare(pos);
         }
 
         updateView();
-        maybeTriggerEngineMove();
+
+        if (outcome == MoveOutcome.MOVE_PLAYED) {
+            maybeTriggerEngineMove();
+            checkGameEnd();
+        }
     }
 
     private void handleUndo() {
@@ -445,11 +451,13 @@ public final class Controller {
      */
     public GameStatus getGameStatus() {
         final PieceColor activeColor = board.getActiveColor() == 'w' ? PieceColor.WHITE : PieceColor.BLACK;
+        final boolean inCheck = GameRules.isKingInCheck(activeColor, board);
+        final boolean noMoves = GameRules.hasNoLegalMove(activeColor, board);
 
-        if (GameRules.isCheckmate(activeColor, board)) {
+        if (inCheck && noMoves) {
             return GameStatus.CHECKMATE;
         }
-        if (GameRules.isStalemate(activeColor, board)) {
+        if (!inCheck && noMoves) {
             return GameStatus.STALEMATE;
         }
         if (GameRules.isFiftyMoveRule(board)) {
@@ -461,7 +469,7 @@ public final class Controller {
         if (GameRules.isInsufficientMaterial(board)) {
             return GameStatus.DRAW_INSUFFICIENT_MATERIAL;
         }
-        if (GameRules.isKingInCheck(activeColor, board)) {
+        if (inCheck) {
             return GameStatus.CHECK;
         }
         return GameStatus.ONGOING;
@@ -635,6 +643,7 @@ public final class Controller {
             @Override
             protected void done() {
                 engineThinking = false;
+                checkGameEnd();
             }
         }.execute();
     }
@@ -837,6 +846,21 @@ public final class Controller {
         trackedMoveLog.push(true);
         if (view != null) {
             view.updatePrecisionBar(engine.averagePrecision());
+        }
+    }
+
+    private void checkGameEnd() {
+        final GameStatus status = getGameStatus();
+        final String message = switch (status) {
+            case CHECKMATE -> "Scacco matto!";
+            case STALEMATE -> "Patta per stallo.";
+            case DRAW_FIFTY_MOVE_RULE -> "Patta per la regola delle 50 mosse.";
+            case DRAW_THREEFOLD_REPETITION -> "Patta per tripla ripetizione.";
+            case DRAW_INSUFFICIENT_MATERIAL -> "Patta per materiale insufficiente.";
+            default -> null;
+        };
+        if (message != null && view != null) {
+            view.showMessage(message, "Fine Partita");
         }
     }
 
