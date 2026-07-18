@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 import scacchi.model.ai.AuraEngine;
 import scacchi.model.gamerules.GameRules;
 import scacchi.model.board.Board;
@@ -50,6 +51,16 @@ public final class Controller {
     private ChessView view;
     private AuraEngine engine;
     private int currentDifficulty = 3; // Default difficulty level
+
+    // --- CPU opponent state -------------------------------------------------
+    // computerColor: which side (if any) the engine plays automatically.
+    // null means automatic play is disabled; playEngineMove() can still be
+    // invoked manually regardless of this flag.
+    private PieceColor computerColor;
+    // volatile: written by the SwingWorker background thread (doInBackground/done
+    // run on different threads) and read from the EDT in handleSquareClick/handleUndo,
+    // so visibility across threads must be guaranteed without full synchronization.
+    private volatile boolean engineThinking;
 
     /**
      * Post-click outcome.
@@ -142,6 +153,47 @@ public final class Controller {
     }
 
     /**
+     * Enables automatic CPU play for the specified color: after every move that
+     * leaves the board on this color's turn (human move, undo, or load), the
+     * engine will play automatically on a background thread.
+     * If it is already this color's turn when called, an engine move is
+     * triggered immediately.
+     *
+     * @param color the color the engine should control
+     */
+    public void enableComputerOpponent(final PieceColor color) {
+        this.computerColor = color;
+        maybeTriggerEngineMove();
+    }
+
+    /**
+     * Disables automatic CPU play. {@link #playEngineMove()} can still be
+     * invoked manually regardless of this setting.
+     */
+    public void disableComputerOpponent() {
+        this.computerColor = null;
+    }
+
+    /**
+     * Returns whether automatic CPU play is currently enabled.
+     *
+     * @return true if an automatic computer opponent color has been set
+     */
+    public boolean isComputerOpponentEnabled() {
+        return computerColor != null;
+    }
+
+    /**
+     * Returns whether the engine is currently computing a move on a background thread.
+     * While true, the view should treat the board as temporarily non-interactive.
+     *
+     * @return true if an engine move is in progress
+     */
+    public boolean isEngineThinking() {
+        return engineThinking;
+    }
+
+    /**
      * Synchronizes the Board's entire logical state with the graphical interface
      * in a single pass over the 64 squares: background reset, selection/legal-move
      * highlighting, and piece drawing are all applied per-square in the correct
@@ -179,6 +231,12 @@ public final class Controller {
     }
 
     private void handleSquareClick(final Position pos) {
+        // Ignore human input while the engine is computing its move on a
+        // background thread, to avoid concurrent mutation of the board.
+        if (engineThinking) {
+            return;
+        }
+
         if (selectedSquare.isPresent()) {
             final Position from = selectedSquare.get();
 
@@ -199,11 +257,17 @@ public final class Controller {
         }
 
         updateView();
+        maybeTriggerEngineMove();
     }
 
     private void handleUndo() {
+        if (engineThinking) {
+            return;
+        }
+
         if (undoMove()) {
             updateView();
+            maybeTriggerEngineMove();
         } else {
             if (view != null) {
                 JOptionPane.showMessageDialog(null, "Nessuna mossa da annullare!", "Undo Move",
@@ -295,6 +359,7 @@ public final class Controller {
                         "Salvataggio caricato correttamente!",
                         LOAD_GAME_TITLE,
                         JOptionPane.INFORMATION_MESSAGE);
+                maybeTriggerEngineMove();
                 return true; // User loaded successfully
             } catch (final IOException e) {
                 JOptionPane.showMessageDialog(null,
@@ -437,16 +502,18 @@ public final class Controller {
     }
 
     /**
-     * Undoes the last move played, if any, and clears the current selection.
+     * Undo the last move made.
      *
-     * @return true if the move was cancelled, false otherwise
+     * @return true if at least one half-move was undone,
+     *         false if the history was already empty
      */
     public boolean undoMove() {
-        final boolean rolledBack = board.rollback();
-        if (rolledBack) {
+        final boolean firstRollback = board.rollback();
+        if (firstRollback) {
+            board.rollback();
             clearSelection();
         }
-        return rolledBack;
+        return firstRollback;
     }
 
     /**
@@ -516,10 +583,12 @@ public final class Controller {
      * plays it through the same {@link #selectSquare(Position)} pipeline used for human moves
      * (so undo history, castling, en passant and promotion are all handled identically),
      * and refreshes the view.
-     *
-     * <p>Promotions chosen by the engine always default to a queen, matching
+     * Promotions chosen by the engine always default to a queen, matching
      * {@link #DEFAULT_PROMOTION_CHOICE}, since {@link AuraEngine.Move} carries no
-     * promotion-piece information.</p>
+     * promotion-piece information.
+     * This method is synchronous and safe to call directly (e.g. from a manual
+     * "CPU move" button) as well as from the background thread spawned by
+     * {@link #maybeTriggerEngineMove()}.
      *
      * @return the outcome of the move actually played, or {@link MoveOutcome#NO_ENGINE_MOVE_AVAILABLE}
      *         if no engine is connected or the engine found no legal move (checkmate/stalemate)
@@ -544,6 +613,42 @@ public final class Controller {
 
         updateView();
         return outcome;
+    }
+
+    /**
+     * Triggers an asynchronous engine move when all of the following hold:
+     * an engine is connected, no engine move is already in progress, automatic
+     * CPU play is enabled, and it is currently the CPU-controlled color's turn.
+     * The actual computation runs on a {@link SwingWorker} background thread
+     * via {@link #playEngineMove()}, keeping the Swing Event Dispatch Thread free
+     * while the (possibly slow) minimax search runs. Whether a legal move exists
+     * is determined entirely by {@link #playEngineMove()} itself (it already
+     * returns {@link MoveOutcome#NO_ENGINE_MOVE_AVAILABLE} on checkmate/stalemate,
+     * since {@link AuraEngine#findBestMove} returns {@code null} in that case) —
+     * no game-end logic is duplicated here.
+     */
+    private void maybeTriggerEngineMove() {
+        if (!hasEngine() || engineThinking || computerColor == null) {
+            return;
+        }
+
+        final PieceColor active = board.getActiveColor() == 'w' ? PieceColor.WHITE : PieceColor.BLACK;
+        if (active != computerColor) {
+            return;
+        }
+
+        engineThinking = true;
+        new SwingWorker<MoveOutcome, Void>() {
+            @Override
+            protected MoveOutcome doInBackground() {
+                return playEngineMove();
+            }
+
+            @Override
+            protected void done() {
+                engineThinking = false;
+            }
+        }.execute();
     }
 
     private MoveOutcome trySelect(final Position pos) {
@@ -588,6 +693,9 @@ public final class Controller {
             final boolean pseudoLegal = movingPiece.getValidMoves(from, board).contains(to);
             return pseudoLegal ? MoveOutcome.MOVE_LEAVES_KING_IN_CHECK : MoveOutcome.ILLEGAL_MOVE;
         }
+
+        //aggiornamento aurometro
+        trackMovePrecision(from, to, movingColor);
 
         // Calculation of special rules before the piece modifies the grid.
         final boolean isCastling = isKing && Math.abs(to.x() - from.x()) == CASTLING_KING_DELTA;
@@ -705,16 +813,44 @@ public final class Controller {
             // If the user clicks the top-right 'X' button, terminate the entire application
             if (choice == JOptionPane.CLOSED_OPTION) {
                 System.exit(0);
-            } else if (choice == 1) { // Carica Vecchia Partita
+            } else if (choice == 1) { // Load Old Game
                 final boolean success = processLoad();
                 if (success) {
                     startReady = true; // File loaded successfully, exit the loop
                 }
-            } else if (choice == 2) { // Gestisci Salvataggi
-                handleDeleteSaves(); // Apre il menu, poi a fine operazione ricarica il Menu Avvio!
-            } else { // Nuova Partita
+            } else if (choice == 2) { // Manage Saves
+                handleDeleteSaves(); // It opens the menu, then reloads the Start Menu once the operation is complete
+            } else { // New Game
                 startReady = true;
             }
         }
     }
+
+    /**
+     * Calculate the accuracy of the move just selected
+     * (if an engine is connected and the move is not the CPU's automatic move)
+     * and update the bar in the view with the updated average accuracy.
+     * It must be called BEFORE {@code board.movePiece(from, to)}, because
+     * {@link AuraEngine#calculatePrecision} simulates and reverts the move
+     * internally using the board's current state.
+     *
+     * @param from starting position of the move
+     * @param to destination position of the move
+     * @param movingColor color of the player whose turn it is to move
+     */
+    private void trackMovePrecision(final Position from, final Position to, final PieceColor movingColor) {
+        if (!hasEngine()) {
+            return;
+        }
+        if (computerColor != null && movingColor == computerColor) {
+            return; // We do not track the precision of the moves played by the CPU.
+        }
+        final AuraEngine.Move humanMove = new AuraEngine.Move(from, to);
+        engine.calculatePrecision(board, humanMove, movingColor == PieceColor.WHITE);
+        if (view != null) {
+            view.updatePrecisionBar(engine.averagePrecision());
+        }
+    }
+
 }
+

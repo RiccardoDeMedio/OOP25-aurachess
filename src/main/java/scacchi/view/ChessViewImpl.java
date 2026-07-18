@@ -6,6 +6,7 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.WindowConstants;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 import javax.swing.JOptionPane;
 import javax.swing.ImageIcon;
@@ -37,10 +38,20 @@ public final class ChessViewImpl implements ChessView {
     private static final float SCREEN_PERCENTAGE = 0.50F;
     private static final float ICON_POPUP_PERCENTAGE = 0.80F;
     private static final int DEFAULT_ICON_SIZE = 64;
+
+    // Constants for AuroMeter
+    private static final int PRECISION_BAR_WIDTH = 40;
+    private static final int PRECISION_MIN = 0;
+    private static final int PRECISION_MAX = 100;
+    private static final int PRECISION_DEFAULT = 50;
+    private static final int PRECISION_HIGH_THRESHOLD = 80;
+    private static final int PRECISION_MID_THRESHOLD = 50;
+
     private final JButton undoButton = new JButton("Undo Move");
     private final JButton saveButton = new JButton("Save Game");
     private final JButton loadButton = new JButton("Load Game");
     private final JButton deleteSavesButton = new JButton("Delete Saves");
+    private final JProgressBar precisionBar = new JProgressBar(JProgressBar.VERTICAL, PRECISION_MIN, PRECISION_MAX);
     private final JFrame frame;
 
     // Constants for colors
@@ -81,8 +92,17 @@ public final class ChessViewImpl implements ChessView {
         controlPanel.add(loadButton);
         controlPanel.add(deleteSavesButton);
 
+        // Add-ons for the AuroMeter
+        // Precision bar setup: vertical bar on the side of the board showing
+        // how accurately the game is currently being played.
+        precisionBar.setValue(PRECISION_DEFAULT);
+        precisionBar.setStringPainted(true);
+        precisionBar.setPreferredSize(new Dimension(PRECISION_BAR_WIDTH, windowSize));
+        precisionBar.setForeground(computeColorForPrecision(PRECISION_DEFAULT));
+
         frame.add(boardPanel, BorderLayout.CENTER);
         frame.add(controlPanel, BorderLayout.SOUTH);
+        frame.add(precisionBar, BorderLayout.EAST);
     }
 
     private void initializeBoard(final JPanel boardPanel) {
@@ -303,6 +323,34 @@ public final class ChessViewImpl implements ChessView {
         // We scale the image using the dynamic value.
         final Image scaledImg = img.getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH);
         return new ImageIcon(scaledImg);
+    }
+
+    // Add-ons for the AuroMeter
+    @Override
+    public void updatePrecisionBar(final int precision) {
+        SwingUtilities.invokeLater(() -> {
+            final int clamped = Math.clamp(precision, PRECISION_MIN, PRECISION_MAX);
+            precisionBar.setValue(clamped);
+            precisionBar.setString(clamped + "%");
+            precisionBar.setForeground(computeColorForPrecision(clamped));
+        });
+    }
+
+    /**
+     * Selects the bar color based on the level of precision:
+     * green for good play, yellow for average, red for poor play.
+     *
+     * @param precision precision value from 0 to 100
+     * @return the corresponding color
+     */
+    private Color computeColorForPrecision(final int precision) {
+        if (precision >= PRECISION_HIGH_THRESHOLD) {
+            return Color.GREEN;
+        }
+        if (precision >= PRECISION_MID_THRESHOLD) {
+            return Color.YELLOW;
+        }
+        return Color.RED;
     }
 
     /**

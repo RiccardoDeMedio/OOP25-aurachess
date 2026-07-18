@@ -84,4 +84,12 @@ public interface ChessView {
      * Makes the game window visible.
      */
     void showView();
+
+    /**
+     * Updates the bar that visually represents the precision with
+     * which the active side is playing, based on {@code AuraEngine.averagePrecision()}.
+     *
+     * @param precision average precision value, from 0 (worst) to 100 (best)
+     */
+    void updatePrecisionBar(int precision);
 }
