@@ -6,12 +6,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.board.ReadOnlyBoard;
 import scacchi.model.pieces.Piece;
 import scacchi.model.pieces.PieceColor;
- 
+
 /**
  * It manages the rules of the game of chess.
  */
@@ -502,7 +501,7 @@ public final class GameRules {
      * @param board the current board
      * @return true in the event of a threefold repetition
      */
-    public static boolean isThreefoldRepetition(final Board board) {
+    public static boolean isThreefoldRepetition(final ReadOnlyBoard board) {
         final List<String> history = board.getChronologicalHistory();
         final Map<String, Integer> occurrences = new HashMap<>();
         for (final String fen : history) {
@@ -564,24 +563,18 @@ public final class GameRules {
         }
         return true;
     }
- 
+
     /**
      * Simulation of a move (without changing the actual board).
+     *
+     * @param original the original board state
+     * @param from the starting position
+     * @param to the destination position
+     * @param removed an optional position of a piece to be removed (es. en passant capture)
      */
-    private static final class SimulatedBoard implements ReadOnlyBoard {
-        private final ReadOnlyBoard original;
-        private final Position from;
-        private final Position to;
-        private final Position removed;
- 
-        SimulatedBoard(final ReadOnlyBoard original, final Position from,
-                final Position to, final Position removed) {
-            this.original = original;
-            this.from = from;
-            this.to = to;
-            this.removed = removed;
-        }
- 
+    private record SimulatedBoard(ReadOnlyBoard original, Position from, Position to,
+                                      Position removed) implements ReadOnlyBoard {
+
         @Override
         public Optional<Piece> getPieceAt(final Position pos) {
             if (pos.equals(to)) {
@@ -592,40 +585,45 @@ public final class GameRules {
             }
             return original.getPieceAt(pos);
         }
- 
+
         @Override
         public boolean isEmpty(final Position pos) {
             return getPieceAt(pos).isEmpty();
         }
- 
+
         @Override
         public char getActiveColor() {
             return original.getActiveColor();
         }
- 
+
         @Override
         public String toFEN() {
             return original.toFEN();
         }
- 
+
         @Override
         public String getCastlingRights() {
             return original.getCastlingRights();
         }
- 
+
         @Override
         public String getEnPassantTarget() {
             return original.getEnPassantTarget();
         }
- 
+
         @Override
         public int getHalfmoveClock() {
             return original.getHalfmoveClock();
         }
- 
+
         @Override
         public int getFullmoveNumber() {
             return original.getFullmoveNumber();
+        }
+
+        @Override
+        public List<String> getChronologicalHistory() {
+            return original.getChronologicalHistory();
         }
     }
 }

@@ -2,7 +2,6 @@ package scacchi.model.board;
 
 import scacchi.model.pieces.Piece;
 import scacchi.model.pieces.PieceFactory;
-
 import java.util.Optional;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -264,6 +263,7 @@ public final class Board implements ReadOnlyBoard {
      *
      * @return the history in chronological order
      */
+    @Override
     public List<String> getChronologicalHistory() {
         final List<String> chronological = new ArrayList<>();
 
@@ -357,6 +357,8 @@ public final class Board implements ReadOnlyBoard {
     /**
      * Executes an ultra-fast move for the engine, without saving the FEN.
      * Returns any captured piece so that it can be restored.
+     * This method was added to provide the chess engine with a more lightweight approach to finding the best move,
+     * without saving the move history.
      *
      * @param from the starting position
      * @param to the destination location
@@ -375,6 +377,7 @@ public final class Board implements ReadOnlyBoard {
 
     /**
      * Undoes the move made by makeEngineMove.
+     * Without doing anything to the history
      *
      * @param from the original starting position
      * @param to the destination position from which to remove the piece

@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Managing saving and loading game files.
@@ -15,6 +16,7 @@ public class SaveManager {
     private static final String APP_DIRECTORY = ".aurascacchi";
     private static final String SAVES_SUBDIR = "saves";
     private static final String FEN_EXT = ".fen";
+    private static final Pattern UNSAFE_CHARS = Pattern.compile("[^a-zA-Z0-9_-]");
 
     /**
      * Helper method to get the absolute path to the saves folder
@@ -44,8 +46,11 @@ public class SaveManager {
         // We retrieve the list of FENs sorted from first to last
         final List<String> historyList = board.getChronologicalHistory();
 
+        // We sanitize the fileName from unwanted character
+        final String sanitizeFileName = sanitizeFileName(fileName);
+
         // We write all the lines in the .fen file
-        final Path filePath = dirPath.resolve(fileName + FEN_EXT);
+        final Path filePath = dirPath.resolve(sanitizeFileName + FEN_EXT);
         Files.write(filePath, historyList);
     }
 
@@ -58,7 +63,8 @@ public class SaveManager {
      */
     public void loadGame(final String fileName, final Board board) throws IOException {
         final Path dirPath = getSavesDirectory();
-        final Path filePath = dirPath.resolve(fileName + FEN_EXT);
+        final String sanitizeFileName = sanitizeFileName(fileName);
+        final Path filePath = dirPath.resolve(sanitizeFileName + FEN_EXT);
 
         if (!Files.exists(filePath)) {
             // Added getAbsolutePath() so in case of error to sees exactly where the program looked for the file
@@ -96,6 +102,23 @@ public class SaveManager {
     }
 
     /**
+     * We take the save name proposed by the user and strip out forbidden characters; otherwise,
+     * it could create or overwrite .fen files anywhere on the computer, cluttering the system.
+     * The user could force the program to read external files.
+     * Or, in a more critical scenario, the user could delete files outside the application folder.
+     *
+     * @param rawName The save name proposed by the user
+     * @return The save name is cleaned of forbidden characters (es. spaces, /, \, ., !, ?), replaced by "_"
+     */
+    private String sanitizeFileName(final String rawName) {
+        final String sanitized = UNSAFE_CHARS.matcher(rawName).replaceAll("_");
+        if (sanitized.isBlank()) {
+            throw new IllegalArgumentException("Nome del salvataggio non valido.");
+        }
+        return sanitized;
+    }
+
+    /**
      * Delete all save files (.fen) in the folder.
      *
      * @throws IOException if an error occurs while deleting a file
@@ -122,7 +145,8 @@ public class SaveManager {
      */
     public void deleteSave(final String fileName) throws IOException {
         final Path dirPath = getSavesDirectory();
-        final Path filePath = dirPath.resolve(fileName + FEN_EXT);
+        final String sanitizeFileName = sanitizeFileName(fileName);
+        final Path filePath = dirPath.resolve(sanitizeFileName + FEN_EXT);
 
         Files.deleteIfExists(filePath);
     }
