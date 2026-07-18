@@ -799,7 +799,7 @@ public final class Controller {
         while (!startReady) {
             // Create a pop-up dialog with custom options
             final int choice = view.askCustomOptions(
-                    "Benvenuto in AuraScacchi!\nCome vuoi iniziare?",
+                    "Benvenuto in AuraChess!\nCome vuoi iniziare?",
                     "Menu Avvio",
                     options
             );

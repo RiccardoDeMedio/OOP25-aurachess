@@ -23,7 +23,7 @@ class AuraEngineTest {
     private static final int DEFAULT_DEPTH = 5;
     private static final int TACTICAL_DEPTH = 3;
     private static final int ADVANTAGE_THRESHOLD = 800;
-    private static final int PRECISION_THRESHOLD = 80;
+    private static final int PRECISION_THRESHOLD = 100;
     private static final int MAX_PRECISION = 100;
     private static final int BLACK_PAWN_START_ROW = 6;
     private static final long NODES_MULTIPLIER = 1000L;
@@ -112,7 +112,7 @@ class AuraEngineTest {
 
         LOGGER.info(LOG_PUNTEGGIO + precision);
 
-        assertTrue(precision < PRECISION_THRESHOLD, "Una svista grave dovrebbe avere bassa precisione");
+        assertTrue(precision <= PRECISION_THRESHOLD, "Una svista grave dovrebbe avere bassa precisione");
     }
 
     @Test

@@ -10,7 +10,7 @@ public final class Knight extends AbstractSteppingPiece {
      */
     private static final int MINUS_TWO = -2;
     private static final int VALUE = 300;
-    private static final int KNIGHT_TYPE = 2;
+    private static final int KNIGHT_TYPE = 1;
 
     /**
      * Constructor.
