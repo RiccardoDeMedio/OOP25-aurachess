@@ -3,7 +3,9 @@ package scacchi.controller;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -58,6 +60,16 @@ public final class Controller {
     // run on different threads) and read from the EDT in handleSquareClick/handleUndo,
     // so visibility across threads must be guaranteed without full synchronization.
     private volatile boolean engineThinking;
+
+    /** 
+     * Una entry per OGNI semi-mossa giocata tramite executeMove (umana o
+     * del computer): true se a quella mossa corrisponde una valutazione
+     * registrata in AuraEngine (quindi da rimuovere in caso di undo),
+     * false se non è stata tracciata (mossa del computer, o nessun engine
+     * collegato). Serve per restare sincronizzati con i due rollback
+     * effettuati da undoMove().
+     */
+    private final Deque<Boolean> trackedMoveLog = new ArrayDeque<>();
 
     /**
      * Post-click outcome.
@@ -133,6 +145,7 @@ public final class Controller {
      *
      * @param engine the AuraEngine instance to use, or null to disable CPU play
      */
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(EI_EXPOSE_REP2_WARNING)
     public void setEngine(final AuraEngine engine) {
         this.engine = engine;
         if (engine != null) {
@@ -471,10 +484,32 @@ public final class Controller {
     public boolean undoMove() {
         final boolean firstRollback = board.rollback();
         if (firstRollback) {
-            board.rollback();
+            undoTrackedPrecision();
+            final boolean secondRollback = board.rollback();
+            if (secondRollback) {
+                undoTrackedPrecision();
+            }
             clearSelection();
+            if (view != null && hasEngine()) {
+                view.updatePrecisionBar(engine.averagePrecision());
+            }
         }
         return firstRollback;
+    }
+
+    /**
+     * Rimuove dallo storico dell'engine la valutazione di precisione (se
+     * presente) corrispondente all'ultima semi-mossa, in seguito a un
+     * rollback effettivamente avvenuto.
+     */
+    private void undoTrackedPrecision() {
+        if (trackedMoveLog.isEmpty()) {
+            return;
+        }
+        final boolean wasTracked = trackedMoveLog.pop();
+        if (wasTracked && hasEngine()) {
+            engine.removeLastEvaluation();
+        }
     }
 
     /**
@@ -799,13 +834,16 @@ public final class Controller {
      */
     private void trackMovePrecision(final Position from, final Position to, final PieceColor movingColor) {
         if (!hasEngine()) {
+            trackedMoveLog.push(false);
             return;
         }
         if (computerColor != null && movingColor == computerColor) {
+            trackedMoveLog.push(false);
             return; // We do not track the precision of the moves played by the CPU.
         }
         final AuraEngine.Move humanMove = new AuraEngine.Move(from, to);
         engine.calculatePrecision(board, humanMove, movingColor == PieceColor.WHITE);
+        trackedMoveLog.push(true);
         if (view != null) {
             view.updatePrecisionBar(engine.averagePrecision());
         }
@@ -827,4 +865,3 @@ public final class Controller {
     }
 
 }
-
