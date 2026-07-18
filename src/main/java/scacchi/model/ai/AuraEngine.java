@@ -334,18 +334,18 @@ public class AuraEngine {
         final List<Move> allPossibleMoves = new ArrayList<>();
         for (final PlacedPiece placedPiece : allPieces) {
             if (isWhite) {
-                if (placedPiece.piece.getColor() == PieceColor.WHITE) {
-                    final Set<Position> finalPositions = GameRules.getLegalMoves(placedPiece.position, board);
+                if (placedPiece.piece().getColor() == PieceColor.WHITE) {
+                    final Set<Position> finalPositions = GameRules.getLegalMoves(placedPiece.position(), board);
                     for (final Position finalPosition : finalPositions) {
-                        final Move move = new Move(placedPiece.position, finalPosition);
+                        final Move move = new Move(placedPiece.position(), finalPosition);
                         allPossibleMoves.add(move);
                     }
                 }
             } else {
-                if (placedPiece.piece.getColor() == PieceColor.BLACK) {
-                    final Set<Position> finalPositions = GameRules.getLegalMoves(placedPiece.position, board);
+                if (placedPiece.piece().getColor() == PieceColor.BLACK) {
+                    final Set<Position> finalPositions = GameRules.getLegalMoves(placedPiece.position(), board);
                     for (final Position finalPosition : finalPositions) {
-                        final Move move = new Move(placedPiece.position, finalPosition);
+                        final Move move = new Move(placedPiece.position(), finalPosition);
                         allPossibleMoves.add(move);
                     }
                 }
@@ -436,6 +436,17 @@ public class AuraEngine {
     }
 
     /**
+     * Removes the last recorded precision evaluation, so that a move which
+     * gets undone no longer contributes to {@link #averagePrecision()}.
+     * Does nothing if no evaluation has been recorded yet.
+     */
+    public void removeLastEvaluation() {
+        if (!allEvalutations.isEmpty()) {
+            allEvalutations.removeLast();
+        }
+    }
+
+    /**
      * Record to register a single piece and its position.
      *
      * @param piece indicates which piece is in that position.
@@ -477,5 +488,4 @@ public class AuraEngine {
         Position rookStartPosition,
         Position rookFinalPosition
     ) { }
-
 }
