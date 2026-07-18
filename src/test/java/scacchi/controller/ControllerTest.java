@@ -141,23 +141,23 @@ class ControllerTest {
 
     // --- En passant --------------------------------------------------------------
 
-    // @Test
-    // void selectSquareEnPassantCaptureRemovesCapturedPawn() {
-    //     // Pedone bianco in e5, pedone nero appena arrivato in f5 (doppio passo),
-    //     // target en passant f6.
-    //     board.loadFromFEN("4k3/8/8/8/4Pp2/8/8/4K3 w - f6 0 1");
-    //     final Position e5 = new Position(4, 4);
-    //     final Position f6 = new Position(5, 5);
-    //     final Position f5 = new Position(5, 4);
+    @Test
+    void selectSquareEnPassantCaptureRemovesCapturedPawn() {
+        // Pedone bianco in e5, pedone nero appena arrivato in f5 (doppio passo),
+        // target en passant f6.
+        board.loadFromFEN("4k3/8/8/4Pp2/8/8/8/4K3 w - f6 0 1");
+        final Position e5 = new Position(4, 4);
+        final Position f6 = new Position(5, 5);
+        final Position f5 = new Position(5, 4);
 
-    //     controller.selectSquare(e5);
-    //     final MoveOutcome outcome = controller.selectSquare(f6);
+        controller.selectSquare(e5);
+        final MoveOutcome outcome = controller.selectSquare(f6);
 
-    //     assertEquals(MoveOutcome.MOVE_PLAYED, outcome);
-    //     assertTrue(board.getPieceAt(f5).isEmpty());  // pedone nero catturato
-    //     assertTrue(board.getPieceAt(f6).isPresent()); // pedone bianco arrivato
-    //     assertTrue(board.getPieceAt(e5).isEmpty());
-    // }
+        assertEquals(MoveOutcome.MOVE_PLAYED, outcome);
+        assertTrue(board.getPieceAt(f5).isEmpty());  // pedone nero catturato
+        assertTrue(board.getPieceAt(f6).isPresent()); // pedone bianco arrivato
+        assertTrue(board.getPieceAt(e5).isEmpty());
+    }
 
     // --- Promozione ---------------------------------------------------------------
 
