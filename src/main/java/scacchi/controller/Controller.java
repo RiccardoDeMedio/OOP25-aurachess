@@ -156,9 +156,8 @@ public final class Controller {
      * Enables automatic CPU play for the specified color: after every move that
      * leaves the board on this color's turn (human move, undo, or load), the
      * engine will play automatically on a background thread.
-     *
-     * <p>If it is already this color's turn when called, an engine move is
-     * triggered immediately.</p>
+     * If it is already this color's turn when called, an engine move is
+     * triggered immediately.
      *
      * @param color the color the engine should control
      */
@@ -503,10 +502,10 @@ public final class Controller {
     }
 
     /**
-     * Annulla l'ultima mossa effettuata.
+     * Undo the last move made.
      *
-     * @return true se almeno una semi-mossa è stata annullata, false se la
-     *         cronologia era già vuota
+     * @return true if at least one half-move was undone,
+     *         false if the history was already empty
      */
     public boolean undoMove() {
         final boolean firstRollback = board.rollback();
@@ -584,14 +583,12 @@ public final class Controller {
      * plays it through the same {@link #selectSquare(Position)} pipeline used for human moves
      * (so undo history, castling, en passant and promotion are all handled identically),
      * and refreshes the view.
-     *
-     * <p>Promotions chosen by the engine always default to a queen, matching
+     * Promotions chosen by the engine always default to a queen, matching
      * {@link #DEFAULT_PROMOTION_CHOICE}, since {@link AuraEngine.Move} carries no
-     * promotion-piece information.</p>
-     *
-     * <p>This method is synchronous and safe to call directly (e.g. from a manual
+     * promotion-piece information.
+     * This method is synchronous and safe to call directly (e.g. from a manual
      * "CPU move" button) as well as from the background thread spawned by
-     * {@link #maybeTriggerEngineMove()}.</p>
+     * {@link #maybeTriggerEngineMove()}.
      *
      * @return the outcome of the move actually played, or {@link MoveOutcome#NO_ENGINE_MOVE_AVAILABLE}
      *         if no engine is connected or the engine found no legal move (checkmate/stalemate)
@@ -622,14 +619,13 @@ public final class Controller {
      * Triggers an asynchronous engine move when all of the following hold:
      * an engine is connected, no engine move is already in progress, automatic
      * CPU play is enabled, and it is currently the CPU-controlled color's turn.
-     *
-     * <p>The actual computation runs on a {@link SwingWorker} background thread
+     * The actual computation runs on a {@link SwingWorker} background thread
      * via {@link #playEngineMove()}, keeping the Swing Event Dispatch Thread free
      * while the (possibly slow) minimax search runs. Whether a legal move exists
      * is determined entirely by {@link #playEngineMove()} itself (it already
      * returns {@link MoveOutcome#NO_ENGINE_MOVE_AVAILABLE} on checkmate/stalemate,
      * since {@link AuraEngine#findBestMove} returns {@code null} in that case) —
-     * no game-end logic is duplicated here.</p>
+     * no game-end logic is duplicated here.
      */
     private void maybeTriggerEngineMove() {
         if (!hasEngine() || engineThinking || computerColor == null) {
@@ -817,38 +813,37 @@ public final class Controller {
             // If the user clicks the top-right 'X' button, terminate the entire application
             if (choice == JOptionPane.CLOSED_OPTION) {
                 System.exit(0);
-            } else if (choice == 1) { // Carica Vecchia Partita
+            } else if (choice == 1) { // Load Old Game
                 final boolean success = processLoad();
                 if (success) {
                     startReady = true; // File loaded successfully, exit the loop
                 }
-            } else if (choice == 2) { // Gestisci Salvataggi
-                handleDeleteSaves(); // Apre il menu, poi a fine operazione ricarica il Menu Avvio!
-            } else { // Nuova Partita
+            } else if (choice == 2) { // Manage Saves
+                handleDeleteSaves(); // It opens the menu, then reloads the Start Menu once the operation is complete
+            } else { // New Game
                 startReady = true;
             }
         }
     }
 
     /**
-     * Calcola la precisione della mossa appena selezionata (se un motore è
-     * collegato e la mossa non è quella automatica della CPU) e aggiorna la
-     * barra nella view con la precisione media aggiornata.
+     * Calculate the accuracy of the move just selected
+     * (if an engine is connected and the move is not the CPU's automatic move)
+     * and update the bar in the view with the updated average accuracy.
+     * It must be called BEFORE {@code board.movePiece(from, to)}, because
+     * {@link AuraEngine#calculatePrecision} simulates and reverts the move
+     * internally using the board's current state.
      *
-     * <p>Va chiamato PRIMA di {@code board.movePiece(from, to)}, perché
-     * {@link AuraEngine#calculatePrecision} simula e annulla la mossa
-     * internamente usando lo stato attuale della board.</p>
-     *
-     * @param from posizione di partenza della mossa
-     * @param to posizione di destinazione della mossa
-     * @param movingColor colore di chi sta muovendo
+     * @param from starting position of the move
+     * @param to destination position of the move
+     * @param movingColor color of the player whose turn it is to move
      */
     private void trackMovePrecision(final Position from, final Position to, final PieceColor movingColor) {
         if (!hasEngine()) {
             return;
         }
         if (computerColor != null && movingColor == computerColor) {
-            return; // non tracciamo la precisione delle mosse giocate dalla CPU
+            return; // We do not track the precision of the moves played by the CPU.
         }
         final AuraEngine.Move humanMove = new AuraEngine.Move(from, to);
         engine.calculatePrecision(board, humanMove, movingColor == PieceColor.WHITE);

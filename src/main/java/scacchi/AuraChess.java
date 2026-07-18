@@ -43,7 +43,7 @@ public final class AuraChess {
             // Initializes the controller by combining the model and the view.
             final Controller controller = new Controller(board, view);
 
-            // Connects Federico's CPU engine to the controller.
+            // Connects CPU engine to the controller.
             controller.setEngine(new AuraEngine(ENGINE_SEARCH_DEPTH));
 
             // Enables automatic CPU play for Black: after every human move (or
@@ -52,7 +52,7 @@ public final class AuraChess {
             // through the same selectSquare(...) pipeline used for human clicks.
             controller.enableComputerOpponent(PieceColor.BLACK);
 
-            // --- NUOVA LOGICA: Pop-up di avvio prima di aprire la finestra ---
+            // Startup pop-up before opening the window
             controller.showStartupPrompt();
 
             // Show the game window

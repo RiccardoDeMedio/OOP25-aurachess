@@ -39,7 +39,7 @@ public final class ChessViewImpl implements ChessView {
     private static final float ICON_POPUP_PERCENTAGE = 0.80F;
     private static final int DEFAULT_ICON_SIZE = 64;
 
-    // Constants for aurometro
+    // Constants for AuroMeter
     private static final int PRECISION_BAR_WIDTH = 40;
     private static final int PRECISION_MIN = 0;
     private static final int PRECISION_MAX = 100;
@@ -92,9 +92,9 @@ public final class ChessViewImpl implements ChessView {
         controlPanel.add(loadButton);
         controlPanel.add(deleteSavesButton);
 
-        //aggiunte per aurometro
+        // Add-ons for the AuroMeter
         // Precision bar setup: vertical bar on the side of the board showing
-        // how accurately the game is currently being played (AuraEngine.averagePrecision()).
+        // how accurately the game is currently being played.
         precisionBar.setValue(PRECISION_DEFAULT);
         precisionBar.setStringPainted(true);
         precisionBar.setPreferredSize(new Dimension(PRECISION_BAR_WIDTH, windowSize));
@@ -325,12 +325,11 @@ public final class ChessViewImpl implements ChessView {
         return new ImageIcon(scaledImg);
     }
 
-    //aggiunte per aurometro
-
+    // Add-ons for the AuroMeter
     @Override
     public void updatePrecisionBar(final int precision) {
         SwingUtilities.invokeLater(() -> {
-            final int clamped = Math.max(PRECISION_MIN, Math.min(PRECISION_MAX, precision));
+            final int clamped = Math.clamp(precision, PRECISION_MIN, PRECISION_MAX);
             precisionBar.setValue(clamped);
             precisionBar.setString(clamped + "%");
             precisionBar.setForeground(computeColorForPrecision(clamped));
@@ -338,11 +337,11 @@ public final class ChessViewImpl implements ChessView {
     }
 
     /**
-     * Sceglie il colore della barra in base al livello di precisione:
-     * verde se si gioca bene, giallo se nella media, rosso se male.
+     * Selects the bar color based on the level of precision:
+     * green for good play, yellow for average, red for poor play.
      *
-     * @param precision valore di precisione da 0 a 100
-     * @return il colore corrispondente
+     * @param precision precision value from 0 to 100
+     * @return the corresponding color
      */
     private Color computeColorForPrecision(final int precision) {
         if (precision >= PRECISION_HIGH_THRESHOLD) {
