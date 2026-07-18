@@ -94,8 +94,8 @@ public class AuraEngine {
 
     private static List<Position> buildAllPosition() {
         final List<Position> allPosition = new ArrayList<>();
-        for (int x = 0; x < 8; x++) {
-            for (int y = 0; y < 8; y++) {
+        for (int x = 0; x < Position.BOARD_SIZE; x++) {
+            for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 allPosition.add(new Position(x, y));
             }
         }
@@ -125,7 +125,7 @@ public class AuraEngine {
         if (color == PieceColor.WHITE) {
             y = MAX_Y - y;
         }
-        index = (y * 8) + position.x();
+        index = (y * Position.BOARD_SIZE) + position.x();
         return index;
     }
 
