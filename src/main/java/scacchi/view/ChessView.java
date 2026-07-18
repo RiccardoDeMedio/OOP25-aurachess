@@ -1,6 +1,9 @@
 package scacchi.view;
 
 import scacchi.model.board.Position;
+
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -92,4 +95,72 @@ public interface ChessView {
      * @param precision average precision value, from 0 (worst) to 100 (best)
      */
     void updatePrecisionBar(int precision);
+
+    /**
+     * Display an informational message to the user.
+     *
+     * @param message the message to display
+     * @param title the title of the dialog window
+     */
+    void showMessage(String message, String title);
+
+    /**
+     * Display a warning message to the user.
+     *
+     * @param message the warning message to display
+     * @param title the title of the dialog window
+     */
+    void showWarningMessage(String message, String title);
+
+    /**
+     * Display an error message to the user.
+     *
+     * @param message the error message to display
+     * @param title the title of the dialog window
+     */
+    void showErrorMessage(String message, String title);
+
+    /**
+     * It requires text input from the user.
+     *
+     * @param prompt the text to display requesting input
+     * @param title the title of the dialog window
+     * @return an Optional containing the entered text, or empty if cancelled
+     */
+    Optional<String> askText(String prompt, String title);
+
+    /**
+     * Displays a drop-down menu for the user to select an option.
+     *
+     * @param prompt the text to display requesting a choice
+     * @param title the title of the dialog window
+     * @param options the list of options to display
+     * @param defaultOption the option to pre-select
+     * @return an Optional containing the choice, empty if cancelled
+     */
+    Optional<String> askChoice(String prompt, String title, List<String> options, String defaultOption);
+
+    /**
+     * Asks the user for confirmation (Yes/No).
+     *
+     * @param message the confirmation question to display
+     * @param title the title of the dialog window
+     * @return true if the user accepts, false otherwise
+     */
+    boolean askConfirmation(String message, String title);
+
+    /**
+     * Displays a dialog box with custom buttons.
+     *
+     * @param message the message to display
+     * @param title the title of the dialog window
+     * @param options the array of custom button labels
+     * @return the index of the clicked button, or -1 if the window is closed
+     */
+    int askCustomOptions(String message, String title, String[] options);
+
+    /**
+     * Closes the application permanently.
+     */
+    void exitApplication();
 }

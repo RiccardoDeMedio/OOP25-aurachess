@@ -1,7 +1,7 @@
 package scacchi.model.board;
 
+import java.util.List;
 import java.util.Optional;
-
 import scacchi.model.pieces.Piece;
 
 /**
@@ -66,4 +66,11 @@ public interface ReadOnlyBoard {
      * @return the current turn
      */
     int getFullmoveNumber();
+
+    /**
+     * Returns the chronological history of the board.
+     *
+     * @return a list of FEN strings representing the game history
+     */
+    List<String> getChronologicalHistory();
 }

@@ -22,7 +22,9 @@ import java.io.IOException;
 import java.io.Serial;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.awt.BorderLayout;
@@ -334,6 +336,59 @@ public final class ChessViewImpl implements ChessView {
             precisionBar.setString(clamped + "%");
             precisionBar.setForeground(computeColorForPrecision(clamped));
         });
+    }
+
+    @Override
+    public void showMessage(final String message, final String title) {
+        JOptionPane.showMessageDialog(frame, message, title, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    @Override
+    public void showWarningMessage(final String message, final String title) {
+        JOptionPane.showMessageDialog(frame, message, title, JOptionPane.WARNING_MESSAGE);
+    }
+
+    @Override
+    public void showErrorMessage(final String message, final String title) {
+        JOptionPane.showMessageDialog(frame, message, title, JOptionPane.ERROR_MESSAGE);
+    }
+
+    @Override
+    public Optional<String> askText(final String prompt, final String title) {
+        final String input = JOptionPane.showInputDialog(frame, prompt, title, JOptionPane.PLAIN_MESSAGE);
+        return Optional.ofNullable(input);
+    }
+
+    @Override
+    public Optional<String> askChoice(final String prompt, final String title, final List<String> options,
+                                      final String defaultOption) {
+        final Object[] optionsArray = options.toArray();
+        final String choice = (String) JOptionPane.showInputDialog(
+                frame, prompt, title, JOptionPane.PLAIN_MESSAGE, null, optionsArray, defaultOption
+        );
+        return Optional.ofNullable(choice);
+    }
+
+    @Override
+    public boolean askConfirmation(final String message, final String title) {
+        final int confirm = JOptionPane.showConfirmDialog(
+                frame, message, title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE
+        );
+        return confirm == JOptionPane.YES_OPTION;
+    }
+
+    @Override
+    public int askCustomOptions(final String message, final String title, final String[] options) {
+        final int choice = JOptionPane.showOptionDialog(
+                frame, message, title, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE,
+                null, options, options[0]
+        );
+        return choice == JOptionPane.CLOSED_OPTION ? -1 : choice;
+    }
+
+    @Override
+    public void exitApplication() {
+        System.exit(0);
     }
 
     /**
