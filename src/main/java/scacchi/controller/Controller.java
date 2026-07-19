@@ -43,6 +43,7 @@ public final class Controller {
     private static final int BLACK_HOME_ROW = 7;
     private static final int INITIAL_TIME_MS = 600_000;
     private static final String LOAD_GAME_TITLE = "Carica Partita";
+    private static final String SAVE_GAME_TITLE = "Salva Partita";
     private static final String ERROR_TITLE = "Errore";
     private static final String DELETE_SAVES_TITLE = "Elimina Salvataggi";
     private static final String DELETE_ALL_OPTION = "--- Elimina TUTTI i salvataggi ---";
@@ -58,7 +59,7 @@ public final class Controller {
 
     private final Board board;
     private final SaveManager saveManager = new SaveManager();
-    private Optional<Position> selectedSquare = Optional.empty();
+    private Position selectedSquare;
     private ChessView view;
     private AuraEngine engine;
     private int currentDifficulty = 3; // Default difficulty level
@@ -212,33 +213,6 @@ public final class Controller {
     }
 
     /**
-     * Disables automatic CPU play. {@link #playEngineMove()} can still be
-     * invoked manually regardless of this setting.
-     */
-    public void disableComputerOpponent() {
-        this.computerColor = null;
-    }
-
-    /**
-     * Returns whether automatic CPU play is currently enabled.
-     *
-     * @return true if an automatic computer opponent color has been set
-     */
-    public boolean isComputerOpponentEnabled() {
-        return computerColor != null;
-    }
-
-    /**
-     * Returns whether the engine is currently computing a move on a background thread.
-     * While true, the view should treat the board as temporarily non-interactive.
-     *
-     * @return true if an engine move is in progress
-     */
-    public boolean isEngineThinking() {
-        return engineThinking;
-    }
-
-    /**
      * Synchronizes the Board's entire logical state with the graphical interface
      * in a single pass over the 64 squares: background reset, selection/legal-move
      * highlighting, and piece drawing are all applied per-square in the correct
@@ -250,8 +224,8 @@ public final class Controller {
         }
 
         final Set<Position> highlighted = new HashSet<>();
-        if (selectedSquare.isPresent()) {
-            final Position sel = selectedSquare.get();
+        if (selectedSquare != null) {
+            final Position sel = selectedSquare;
             highlighted.add(sel);
             highlighted.addAll(getLegalMovesFrom(sel));
         }
@@ -284,8 +258,8 @@ public final class Controller {
 
         final MoveOutcome outcome;
 
-        if (selectedSquare.isPresent()) {
-            final Position from = selectedSquare.get();
+        if (selectedSquare != null) {
+            final Position from = selectedSquare;
 
             final boolean isPromotionMove = board.getPieceAt(from)
                     .filter(piece -> GameRules.isPromotion(pos, piece))
@@ -306,16 +280,16 @@ public final class Controller {
         updateView();
 
         if (outcome == MoveOutcome.MOVE_PLAYED) {
-            maybeTriggerEngineMove();
-            checkGameEnd();
+            // Check if the game is over BEFORE starting the CPU
+            final boolean ended = checkGameEnd();
+            if (!ended) {
+                maybeTriggerEngineMove();
+            }
         }
     }
 
     private void handleUndo() {
-        if (engineThinking) {
-            if (view != null) {
-                view.showWarningMessage("Attendi che la CPU finisca di pensare!", "Undo Move");
-            }
+        if (preventActionIfEngineThinking("Undo Move")) {
             return;
         }
 
@@ -330,12 +304,15 @@ public final class Controller {
     }
 
     private void handleSave() {
+        if (preventActionIfEngineThinking(SAVE_GAME_TITLE)) {
+            return;
+        }
         if (view == null) {
             return;
         }
 
         // Ask the user for the base save name via a text pop-up
-        final Optional<String> inputOpt = view.askText("Inserisci il nome del salvataggio:", "Salva Partita");
+        final Optional<String> inputOpt = view.askText("Inserisci il nome del salvataggio:", SAVE_GAME_TITLE);
 
         // If the user presses "Cancel" or closes the dialog, inputOpt is null.
         if (inputOpt.isPresent() && !inputOpt.get().isBlank()) {
@@ -351,7 +328,7 @@ public final class Controller {
                 final String fileName = baseName + "_Diff-" + currentDifficulty;
 
                 saveGame(fileName);
-                view.showMessage("Partita salvata con successo come:\n" + fileName, "Salva Partita");
+                view.showMessage("Partita salvata con successo come:\n" + fileName, SAVE_GAME_TITLE);
             } catch (final IOException e) {
                 view.showErrorMessage("Errore durante il salvataggio: " + e.getMessage(), ERROR_TITLE);
             }
@@ -365,6 +342,9 @@ public final class Controller {
 
     // New method that processes loading and returns true if successful, false if cancelled
     private boolean processLoad() {
+        if (preventActionIfEngineThinking("Carica Partita")) {
+            return false;
+        }
         if (view == null) {
             return false;
         }
@@ -402,6 +382,9 @@ public final class Controller {
     }
 
     private void handleDeleteSaves() {
+        if (preventActionIfEngineThinking("Gestione Salvataggi")) {
+            return;
+        }
         if (view == null) {
             return;
         }
@@ -456,19 +439,10 @@ public final class Controller {
     }
 
     /**
-     * Returns the currently selected box.
-     *
-     * @return an Optional containing the selected position
-     */
-    public Optional<Position> getSelectedSquare() {
-        return selectedSquare;
-    }
-
-    /**
      * Cancel the selection without attempting a move.
      */
     public void clearSelection() {
-        selectedSquare = Optional.empty();
+        selectedSquare = null;
     }
 
     /**
@@ -577,6 +551,17 @@ public final class Controller {
     public void loadGame(final String fileName) throws IOException {
         saveManager.loadGame(fileName, board);
         clearSelection();
+
+        // Collateral state reset
+        trackedMoveLog.clear();
+
+        // Reset timers to initial values
+        this.chessClock = new ChessClock(INITIAL_TIME_MS, 0);
+
+        // If the timer had been stopped by a previous checkmate or timeout, we restart it.
+        if (this.timer != null && !this.timer.isRunning()) {
+            this.timer.start();
+        }
     }
 
     /**
@@ -597,25 +582,25 @@ public final class Controller {
      * @return the outcome of the selection operation or move
      */
     public MoveOutcome selectSquare(final Position pos, final char promotionChoice) {
-        if (selectedSquare.isEmpty()) {
+        if (selectedSquare == null) {
             return trySelect(pos);
         }
 
-        final Position currentlySelected = selectedSquare.get();
+        final Position currentlySelected = selectedSquare;
 
         if (currentlySelected.equals(pos)) {
-            selectedSquare = Optional.empty();
+            selectedSquare = null;
             return MoveOutcome.DESELECTED;
         }
 
         if (belongsToActiveColor(pos)) {
-            selectedSquare = Optional.of(pos);
+            selectedSquare = pos;
             return MoveOutcome.SELECTED;
         }
 
         final MoveOutcome outcome = executeMove(currentlySelected, pos, promotionChoice);
         if (outcome == MoveOutcome.MOVE_PLAYED) {
-            selectedSquare = Optional.empty();
+            selectedSquare = null;
         }
         return outcome;
     }
@@ -699,7 +684,7 @@ public final class Controller {
             return MoveOutcome.INVALID_SELECTION;
         }
 
-        selectedSquare = Optional.of(pos);
+        selectedSquare = pos;
         return MoveOutcome.SELECTED;
     }
 
@@ -901,7 +886,7 @@ public final class Controller {
         }
     }
 
-    private void checkGameEnd() {
+    private boolean checkGameEnd() {
         final GameStatus status = getGameStatus();
         final String message = switch (status) {
             case CHECKMATE -> "Scacco matto!";
@@ -920,7 +905,9 @@ public final class Controller {
             if (view != null) {
                 view.showMessage(message, "Fine Partita");
             }
+            return true;
         }
+        return false;
     }
 
     /**
@@ -945,5 +932,21 @@ public final class Controller {
             return COMMENT_MISTAKE;
         }
         return COMMENT_BLUNDER;
+    }
+
+    /**
+     * Check if the CPU is thinking and, if so, block the action and notify the user.
+     *
+     * @param actionTitle the title to display in the alert popup
+     * @return true if the engine is thinking (action blocked), false otherwise
+     */
+    private boolean preventActionIfEngineThinking(final String actionTitle) {
+        if (engineThinking) {
+            if (view != null) {
+                view.showWarningMessage("Attendi che la CPU finisca di pensare", actionTitle);
+            }
+            return true;
+        }
+        return false;
     }
 }

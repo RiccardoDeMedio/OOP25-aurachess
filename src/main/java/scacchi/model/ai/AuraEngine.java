@@ -3,6 +3,7 @@ package scacchi.model.ai;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import scacchi.model.board.Board;
 import scacchi.model.board.Position;
 import scacchi.model.gamerules.GameRules;
@@ -34,6 +35,8 @@ public class AuraEngine {
     private final int maxDepth;
     private final List<Integer> whiteEvalutations;
     private final List<Integer> blackEvaluations;
+    private final List<Move> allBestMoves;
+    private final List<Move> allPlayerMoves;
     private final int[][] pieceTable = {
         {
                 0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25,
@@ -83,6 +86,8 @@ public class AuraEngine {
         this.maxDepth = maxDepth;
         this.whiteEvalutations = new ArrayList<>();
         this.blackEvaluations = new ArrayList<>();
+        this.allBestMoves = new ArrayList<>();
+        this.allPlayerMoves = new ArrayList<>();
     }
 
     /**
@@ -92,6 +97,24 @@ public class AuraEngine {
      */
     public int getDepth() {
         return maxDepth;
+    }
+
+    /**
+     * Returns the history of player's move.
+     *
+     * @return allPlayerMoves
+     */
+    public List<Move> getAllPlayerMoves() {
+        return new ArrayList<>(allPlayerMoves);
+    }
+
+    /**
+     * Returns the best possible moves for the player instead of other moves.
+     *
+     * @return allBestMoves
+     */
+    public List<Move> getAllBestMoves() {
+        return new ArrayList<>(allBestMoves);
     }
 
     private static List<Position> buildAllPosition() {
@@ -278,6 +301,7 @@ public class AuraEngine {
 
     private int calculateLoss(final Board board, final Move move, final boolean isWhite) {
         final UndoInfo playerUndo = applyMove(board, move);
+        allPlayerMoves.add(move);
         final int evaluationPlayerMove = minimaxingAlfaBetaPruning(
                 board, 
                 getDepth() - 1,
@@ -288,6 +312,7 @@ public class AuraEngine {
         undoMove(board, playerUndo);
 
         final Move bestMove = findBestMove(board, isWhite);
+        allBestMoves.add(bestMove);
         final UndoInfo engineUndo = applyMove(board, bestMove);
         final int evaluationBestMove = minimaxingAlfaBetaPruning(
                 board, 
@@ -456,7 +481,7 @@ public class AuraEngine {
 
     /**
      * Removes the last recorded precision evaluation, so that a move which
-     * gets undone no longer contributes to {@link #averagePrecision()}.
+     * gets undone no longer contributes to averagePrecision().
      * Does nothing if no evaluation has been recorded yet.
      * 
      * @param isWhite determines which player
@@ -466,6 +491,12 @@ public class AuraEngine {
             whiteEvalutations.removeLast();
         } else if (!blackEvaluations.isEmpty() && !isWhite) {
             blackEvaluations.removeLast();
+        }
+        if (!allBestMoves.isEmpty()) {
+            allBestMoves.removeLast();
+        }
+        if (!allPlayerMoves.isEmpty()) {
+            allPlayerMoves.removeLast();
         }
     }
 

@@ -156,6 +156,37 @@ class AuraEngineTest {
     }
 
     @Test
+    void shouldTrackAndUndoMovesHistory() {
+        // Usa una posizione di partenza o una FEN semplice
+        final Board board = boardFromFEN(STARTING_FEN);
+
+        // Scegliamo una mossa valida (es. Pedone e2-e4)
+        final Move playerMove = new Move(new Position(4, 1), new Position(4, 3));
+
+        // Assicuriamoci che lo storico sia vuoto all'inizio
+        assertTrue(engine.getAllPlayerMoves().isEmpty(), "Lo storico del giocatore deve essere vuoto inizialmente");
+        assertTrue(engine.getAllBestMoves().isEmpty(), "Lo storico delle best moves deve essere vuoto inizialmente");
+
+        // Calcolando la precisione, l'engine dovrebbe popolare le liste tramite calculateLoss
+        engine.calculatePrecision(board, playerMove, true);
+
+        // 1. Verifica che la mossa del giocatore sia stata salvata
+        assertEquals(1, engine.getAllPlayerMoves().size(), "Deve esserci esattamente 1 mossa del giocatore registrata");
+        assertEquals(playerMove, engine.getAllPlayerMoves().getFirst(), "La mossa registrata deve coincidere con quella giocata");
+
+        // 2. Verifica che la best move dell'engine sia stata calcolata e salvata
+        assertEquals(1, engine.getAllBestMoves().size(), "Deve esserci esattamente 1 best move registrata");
+        assertNotNull(engine.getAllBestMoves().getFirst(), "La best move salvata non può essere null");
+
+        // 3. Simuliamo un "Undo" da parte del Controller
+        engine.removeLastEvaluation(true);
+
+        // 4. Verifica che lo storico sia tornato pulito
+        assertTrue(engine.getAllPlayerMoves().isEmpty(), "Lo storico del giocatore deve svuotarsi dopo il rollback");
+        assertTrue(engine.getAllBestMoves().isEmpty(), "Lo storico delle best moves deve svuotarsi dopo il rollback");
+    }
+
+    @Test
     void shouldChoosePromotionWhenBest() {
         final Board board = boardFromFEN("5r2/6P1/8/8/8/8/8/4K1k1 w - - 0 1");
         final AuraEngine deepEngine = new AuraEngine(TACTICAL_DEPTH);
