@@ -205,6 +205,10 @@ public final class Board implements ReadOnlyBoard {
                 if (Character.isDigit(c)) {
                     x += Character.getNumericValue(c);
                 } else {
+                    // Prevents "out of place" writes if the row already exceeds 8 columns before the end
+                    if (x >= BOARD_COLUMN) {
+                        throw new IllegalArgumentException("Riga FEN " + (i + 1) + " eccede " + BOARD_COLUMN + " colonne.");
+                    }
                     try {
                         final Piece piece = PieceFactory.createPiece(c);
                         state[toIndex(x, y)] = piece;
@@ -356,23 +360,18 @@ public final class Board implements ReadOnlyBoard {
 
     /**
      * Executes an ultra-fast move for the engine, without saving the FEN.
-     * Returns any captured piece so that it can be restored.
      * This method was added to provide the chess engine with a more lightweight approach to finding the best move,
      * without saving the move history.
      *
      * @param from the starting position
      * @param to the destination location
-     * @return the captured piece, if any, or null
      */
-    public Piece makeEngineMove(final Position from, final Position to) {
+    public void makeEngineMove(final Position from, final Position to) { // <-- void
         final int fromIndex = toIndex(from);
         final int toIndex = toIndex(to);
 
-        final Piece capturedPiece = state[toIndex];
         state[toIndex] = state[fromIndex];
         state[fromIndex] = null;
-
-        return capturedPiece;
     }
 
     /**

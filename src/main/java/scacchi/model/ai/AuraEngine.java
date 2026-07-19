@@ -481,7 +481,7 @@ public class AuraEngine {
 
     /**
      * Removes the last recorded precision evaluation, so that a move which
-     * gets undone no longer contributes to {@link #averagePrecision()}.
+     * gets undone no longer contributes to averagePrecision().
      * Does nothing if no evaluation has been recorded yet.
      * 
      * @param isWhite determines which player
