@@ -87,6 +87,15 @@ public final class Controller {
     private final Deque<Boolean> trackedMoveLog = new ArrayDeque<>();
 
     /**
+     * Cronologia delle precisioni calcolate per ogni mossa "tracciata" (umana,
+     * con engine collegato). Parallela a engine.getAllPlayerMoves()/getAllBestMoves():
+     * ad ogni elemento aggiunto in trackMovePrecision() corrisponde un elemento
+     * aggiunto in allPlayerMoves/allBestMoves, ed entrambi vengono rimossi insieme
+     * in caso di undo, cosicché le tre liste restino sempre allineate per indice.
+     */
+    private final List<Integer> precisionHistory = new ArrayList<>();
+
+    /**
      * Post-click outcome.
      */
     public enum MoveOutcome {
@@ -526,9 +535,14 @@ public final class Controller {
             return;
         }
         final boolean wasTracked = trackedMoveLog.pop();
-        if (wasTracked && hasEngine()) {
-            final boolean isWhite = board.getActiveColor() == 'w';
-            engine.removeLastEvaluation(isWhite);
+        if (wasTracked) {
+            if (!precisionHistory.isEmpty()) {
+                precisionHistory.removeLast();
+            }
+            if (hasEngine()) {
+                final boolean isWhite = board.getActiveColor() == 'w';
+                engine.removeLastEvaluation(isWhite);
+            }
         }
     }
 
@@ -551,6 +565,10 @@ public final class Controller {
     public void loadGame(final String fileName) throws IOException {
         saveManager.loadGame(fileName, board);
         clearSelection();
+
+        // Collateral state reset
+        trackedMoveLog.clear();
+        precisionHistory.clear();
 
         // Collateral state reset
         trackedMoveLog.clear();
@@ -874,12 +892,13 @@ public final class Controller {
         }
         if (computerColor != null && movingColor == computerColor) {
             trackedMoveLog.push(false);
-            return; // Non commentiamo le mosse giocate dalla CPU.
+            return;
         }
         final boolean isWhite = movingColor == PieceColor.WHITE;
         final AuraEngine.Move humanMove = new AuraEngine.Move(from, to);
         final int precision = engine.calculatePrecision(board, humanMove, isWhite);
         trackedMoveLog.push(true);
+        precisionHistory.add(precision);
         if (view != null) {
             view.updatePrecisionBar(engine.averagePrecision(isWhite));
             view.showMoveComment(commentForPrecision(precision));
@@ -904,6 +923,7 @@ public final class Controller {
             }
             if (view != null) {
                 view.showMessage(message, "Fine Partita");
+                showGameReport();
             }
             return true;
         }
@@ -948,5 +968,59 @@ public final class Controller {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Costruisce e mostra il riepilogo di fine partita: ogni mossa giocata
+     * dall'umano, la relativa precisione, e la mossa migliore che l'engine
+     * avrebbe giocato al suo posto. Si basa sulle liste parallele esposte da
+     * AuraEngine (già sincronizzate con precisionHistory da trackMovePrecision
+     * e undoTrackedPrecision).
+     */
+    private void showGameReport() {
+        if (view == null || !hasEngine()) {
+            return;
+        }
+
+        final List<AuraEngine.Move> playerMoves = engine.getAllPlayerMoves();
+
+        // Spostato prima dell'inizializzazione di bestMoves
+        if (playerMoves.isEmpty()) {
+            return;
+        }
+
+        final List<AuraEngine.Move> bestMoves = engine.getAllBestMoves();
+        final int count = Math.min(playerMoves.size(), bestMoves.size());
+
+        // Si prealloca una capacità dinamica adeguata
+        // (circa 30 caratteri iniziali + 80 caratteri stimati per ogni mossa aggiunta nel ciclo)
+        final int initialCapacity = 30 + (count * 80);
+        final StringBuilder report = new StringBuilder(initialCapacity);
+        report.append("Riepilogo delle tue mosse:\n\n");
+
+        for (int i = 0; i < count; i++) {
+            final AuraEngine.Move played = playerMoves.get(i);
+            final AuraEngine.Move best = bestMoves.get(i);
+
+            report.append(i + 1).append(". ")
+                .append(GameRules.positionToAlgebraic(played.startPosition()))
+                .append(GameRules.positionToAlgebraic(played.finalPosition()));
+
+            if (i < precisionHistory.size()) {
+                report.append(" (precisione: ").append(precisionHistory.get(i)).append("%)");
+            }
+
+            if (!played.equals(best)) {
+                report.append(" — mossa migliore: ")
+                    .append(GameRules.positionToAlgebraic(best.startPosition()))
+                    .append(GameRules.positionToAlgebraic(best.finalPosition()));
+            } else {
+                report.append(" — ottima mossa!");
+            }
+
+            report.append('\n');
+        }
+
+        view.showMessage(report.toString(), "Analisi Partita");
     }
 }
