@@ -276,24 +276,35 @@ public class AuraEngine {
 
     private int calculateLoss(final Board board, final Move move, final boolean isWhite) {
         final UndoInfo playerUndo = applyMove(board, move);
-        final List<PlacedPiece> newBoardPieces = getAllPieces(board);
-        final int evaluationPlayerMove = evaluateBoard(board, newBoardPieces);
+        final int evaluationPlayerMove = minimaxingAlfaBetaPruning(
+                board, 
+                getDepth() - 1,
+                Integer.MIN_VALUE, 
+                Integer.MAX_VALUE, 
+                !isWhite
+        );
         undoMove(board, playerUndo);
 
         final Move bestMove = findBestMove(board, isWhite);
         final UndoInfo engineUndo = applyMove(board, bestMove);
-        final List<PlacedPiece> bestBoardPieces = getAllPieces(board);
-        final int evaluationBestMove = evaluateBoard(board, bestBoardPieces);
+        final int evaluationBestMove = minimaxingAlfaBetaPruning(
+                board, 
+                getDepth() - 1, 
+                Integer.MIN_VALUE, 
+                Integer.MAX_VALUE, 
+                !isWhite
+        );
         undoMove(board, engineUndo);
-        int loss;
+
+        final int loss;
         final int minimum = 0;
         if (isWhite) {
             loss = evaluationBestMove - evaluationPlayerMove;
         } else {
             loss = evaluationPlayerMove - evaluationBestMove;
         }
-        loss = Math.max(loss, minimum);
-        return loss;
+
+        return Math.max(loss, minimum);
     }
 
     /**

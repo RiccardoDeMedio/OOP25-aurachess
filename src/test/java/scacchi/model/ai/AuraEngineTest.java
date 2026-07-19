@@ -105,14 +105,17 @@ class AuraEngineTest {
 
     @Test
     void blunderShouldHaveLowPrecision() {
-        final Board board = boardFromFEN(STARTING_FEN);
-        final Move blunder = new Move(new Position(1, 0), new Position(0, 2));
+        // FEN: Re bianco in e1, Regina bianca in d4. Re nero in e8, pedone nero in e6.
+        final String queenHangingFEN = "4k3/8/4p3/8/3Q4/8/8/4K3 w - - 0 1";
+        final Board board = boardFromFEN(queenHangingFEN);
+
+        final Move blunder = new Move(new Position(3, 3), new Position(3, 4));
 
         final int precision = engine.calculatePrecision(board, blunder, true);
 
         LOGGER.info(LOG_PUNTEGGIO + precision);
 
-        assertTrue(precision <= PRECISION_THRESHOLD, "Una svista grave dovrebbe avere bassa precisione");
+        assertTrue(precision <= PRECISION_THRESHOLD, "Regalare la Regina dovrebbe portare a una precisione bassissima");
     }
 
     @Test
