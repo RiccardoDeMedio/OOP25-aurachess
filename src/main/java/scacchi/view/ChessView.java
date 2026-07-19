@@ -171,4 +171,13 @@ public interface ChessView {
      * @param blackTime the formatted string representing Black's remaining time
      */
     void updateTimerDisplay(String whiteTime, String blackTime);
+
+    /**
+     * Mostra un breve commento testuale sulla qualità dell'ultima mossa
+     * giocata (es. "Eccellente!", "Mossa pessima!"), senza bloccare il flusso
+     * di gioco: il messaggio scompare automaticamente dopo qualche secondo.
+     *
+     * @param comment il testo del commento da mostrare
+     */
+    void showMoveComment(String comment);
 }

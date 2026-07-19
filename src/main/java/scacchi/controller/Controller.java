@@ -46,6 +46,15 @@ public final class Controller {
     private static final String ERROR_TITLE = "Errore";
     private static final String DELETE_SAVES_TITLE = "Elimina Salvataggi";
     private static final String DELETE_ALL_OPTION = "--- Elimina TUTTI i salvataggi ---";
+    private static final int PRECISION_EXCELLENT_THRESHOLD = 90;
+    private static final int PRECISION_GOOD_THRESHOLD = 70;
+    private static final int PRECISION_INACCURACY_THRESHOLD = 50;
+    private static final int PRECISION_MISTAKE_THRESHOLD = 30;
+    private static final String COMMENT_EXCELLENT = "Eccellente!";
+    private static final String COMMENT_GOOD = "Buona mossa";
+    private static final String COMMENT_INACCURACY = "Imprecisione";
+    private static final String COMMENT_MISTAKE = "Errore";
+    private static final String COMMENT_BLUNDER = "Mossa pessima!";
 
     private final Board board;
     private final SaveManager saveManager = new SaveManager();
@@ -880,14 +889,15 @@ public final class Controller {
         }
         if (computerColor != null && movingColor == computerColor) {
             trackedMoveLog.push(false);
-            return; // We do not track the precision of the moves played by the CPU.
+            return; // Non commentiamo le mosse giocate dalla CPU.
         }
         final boolean isWhite = movingColor == PieceColor.WHITE;
         final AuraEngine.Move humanMove = new AuraEngine.Move(from, to);
-        engine.calculatePrecision(board, humanMove, isWhite);
+        final int precision = engine.calculatePrecision(board, humanMove, isWhite);
         trackedMoveLog.push(true);
         if (view != null) {
             view.updatePrecisionBar(engine.averagePrecision(isWhite));
+            view.showMoveComment(commentForPrecision(precision));
         }
     }
 
@@ -913,4 +923,27 @@ public final class Controller {
         }
     }
 
+    /**
+     * Traduce il punteggio di precisione istantaneo (0-100, calcolato da
+     * {@link AuraEngine#calculatePrecision}) in un commento testuale da
+     * mostrare al giocatore subito dopo la sua mossa.
+     *
+     * @param precision precisione della mossa appena giocata
+     * @return il commento corrispondente
+     */
+    private String commentForPrecision(final int precision) {
+        if (precision >= PRECISION_EXCELLENT_THRESHOLD) {
+            return COMMENT_EXCELLENT;
+        }
+        if (precision >= PRECISION_GOOD_THRESHOLD) {
+            return COMMENT_GOOD;
+        }
+        if (precision >= PRECISION_INACCURACY_THRESHOLD) {
+            return COMMENT_INACCURACY;
+        }
+        if (precision >= PRECISION_MISTAKE_THRESHOLD) {
+            return COMMENT_MISTAKE;
+        }
+        return COMMENT_BLUNDER;
+    }
 }

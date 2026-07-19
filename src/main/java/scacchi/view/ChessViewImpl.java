@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
+import javax.swing.Timer;
 
 /**
  * Implementation of the chessboard's graphical interface.
@@ -51,6 +52,9 @@ public final class ChessViewImpl implements ChessView {
     private static final int PRECISION_HIGH_THRESHOLD = 80;
     private static final int PRECISION_MID_THRESHOLD = 50;
     private static final int TIMER_PANEL_PADDING = 20;
+    private static final int COMMENT_DISPLAY_MS = 2000;
+    private final JLabel commentLabel = new JLabel(" ", SwingConstants.CENTER);
+    private transient Timer commentTimer;
 
     private final JButton undoButton = new JButton("Undo Move");
     private final JButton saveButton = new JButton("Save Game");
@@ -129,6 +133,9 @@ public final class ChessViewImpl implements ChessView {
         frame.add(controlPanel, BorderLayout.SOUTH);
         frame.add(precisionBar, BorderLayout.EAST);
         frame.add(timerPanel, BorderLayout.WEST);
+
+        commentLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, dynamicFontSize));
+        frame.add(commentLabel, BorderLayout.NORTH);
     }
 
     private void initializeBoard(final JPanel boardPanel) {
@@ -438,6 +445,19 @@ public final class ChessViewImpl implements ChessView {
             return Color.YELLOW;
         }
         return Color.RED;
+    }
+
+    @Override
+    public void showMoveComment(final String comment) {
+        SwingUtilities.invokeLater(() -> {
+            commentLabel.setText(comment);
+            if (commentTimer != null) {
+                commentTimer.stop();
+            }
+            commentTimer = new Timer(COMMENT_DISPLAY_MS, e -> commentLabel.setText(" "));
+            commentTimer.setRepeats(false);
+            commentTimer.start();
+        });
     }
 
     /**
