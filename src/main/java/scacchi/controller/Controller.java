@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import scacchi.model.ai.AuraEngine;
 import scacchi.model.gamerules.GameRules;
 import scacchi.model.board.Board;
@@ -18,6 +19,7 @@ import scacchi.model.board.SaveManager;
 import scacchi.model.pieces.Piece;
 import scacchi.model.pieces.PieceFactory;
 import scacchi.model.pieces.PieceColor;
+import scacchi.model.time.ChessClock;
 import scacchi.view.ChessView;
 
 /**
@@ -39,6 +41,7 @@ public final class Controller {
     private static final int CASTLING_KING_DELTA = 2;
     private static final int PAWN_DOUBLE_STEP_DELTA = 2;
     private static final int BLACK_HOME_ROW = 7;
+    private static final int INITIAL_TIME_MS = 600_000;
     private static final String LOAD_GAME_TITLE = "Carica Partita";
     private static final String ERROR_TITLE = "Errore";
     private static final String DELETE_SAVES_TITLE = "Elimina Salvataggi";
@@ -50,6 +53,8 @@ public final class Controller {
     private ChessView view;
     private AuraEngine engine;
     private int currentDifficulty = 3; // Default difficulty level
+    private ChessClock chessClock;
+    private Timer timer;
 
     // --- CPU opponent state -------------------------------------------------
     // computerColor: which side (if any) the engine plays automatically.
@@ -94,7 +99,9 @@ public final class Controller {
         STALEMATE,
         DRAW_FIFTY_MOVE_RULE,
         DRAW_THREEFOLD_REPETITION,
-        DRAW_INSUFFICIENT_MATERIAL
+        DRAW_INSUFFICIENT_MATERIAL,
+        TIMEOUT_WHITE,
+        TIMEOUT_BLACK
     }
 
     /**
@@ -108,6 +115,25 @@ public final class Controller {
             throw new IllegalArgumentException("la board non può essere nulla");
         }
         this.board = board;
+
+        this.chessClock = new ChessClock(INITIAL_TIME_MS, 0);
+
+        this.timer = new Timer(100, e -> {
+            if (getGameStatus() == GameStatus.ONGOING || getGameStatus() == GameStatus.CHECK) {
+                final boolean isWhiteTurn = board.getActiveColor() == 'w';
+                chessClock.tick(100, isWhiteTurn);
+            }
+
+            if (view != null) {
+                view.updateTimerDisplay(chessClock.getWhiteTimeFormatted(), chessClock.getBlackTimeFormatted());
+            }
+
+            if (chessClock.isTimeOut()) {
+                timer.stop();
+                checkGameEnd();
+            }
+        });
+        this.timer.start();
     }
 
     /**
@@ -278,6 +304,9 @@ public final class Controller {
 
     private void handleUndo() {
         if (engineThinking) {
+            if (view != null) {
+                view.showWarningMessage("Attendi che la CPU finisca di pensare!", "Undo Move");
+            }
             return;
         }
 
@@ -454,6 +483,12 @@ public final class Controller {
         final boolean inCheck = GameRules.isKingInCheck(activeColor, board);
         final boolean noMoves = GameRules.hasNoLegalMove(activeColor, board);
 
+        if (chessClock != null && chessClock.isWhiteTimeOut()) {
+            return GameStatus.TIMEOUT_WHITE;
+        }
+        if (chessClock != null && chessClock.isBlackTimeOut()) {
+            return GameStatus.TIMEOUT_BLACK;
+        }
         if (inCheck && noMoves) {
             return GameStatus.CHECKMATE;
         }
@@ -491,7 +526,8 @@ public final class Controller {
             }
             clearSelection();
             if (view != null && hasEngine()) {
-                view.updatePrecisionBar(engine.averagePrecision());
+                final boolean isWhite = board.getActiveColor() == 'w';
+                view.updatePrecisionBar(engine.averagePrecision(isWhite));
             }
         }
         return firstRollback;
@@ -508,7 +544,8 @@ public final class Controller {
         }
         final boolean wasTracked = trackedMoveLog.pop();
         if (wasTracked && hasEngine()) {
-            engine.removeLastEvaluation();
+            final boolean isWhite = board.getActiveColor() == 'w';
+            engine.removeLastEvaluation(isWhite);
         }
     }
 
@@ -724,6 +761,10 @@ public final class Controller {
             board.putPiece(to, PieceFactory.createPiece(promotedFenChar));
         }
 
+        // Timer gestion, we give the increment to the current color
+        final boolean wasWhiteTurn = board.getActiveColor() == 'w';
+        chessClock.addIncrement(wasWhiteTurn);
+
         // Update the chessboard metadata.
         board.setActiveColor(movingColor == PieceColor.WHITE ? 'b' : 'w');
         board.setCastlingRights(updateCastlingRights(castlingRightsBefore, from, to, movingColor, isCastling));
@@ -841,11 +882,12 @@ public final class Controller {
             trackedMoveLog.push(false);
             return; // We do not track the precision of the moves played by the CPU.
         }
+        final boolean isWhite = movingColor == PieceColor.WHITE;
         final AuraEngine.Move humanMove = new AuraEngine.Move(from, to);
-        engine.calculatePrecision(board, humanMove, movingColor == PieceColor.WHITE);
+        engine.calculatePrecision(board, humanMove, isWhite);
         trackedMoveLog.push(true);
         if (view != null) {
-            view.updatePrecisionBar(engine.averagePrecision());
+            view.updatePrecisionBar(engine.averagePrecision(isWhite));
         }
     }
 
@@ -857,10 +899,17 @@ public final class Controller {
             case DRAW_FIFTY_MOVE_RULE -> "Patta per la regola delle 50 mosse.";
             case DRAW_THREEFOLD_REPETITION -> "Patta per tripla ripetizione.";
             case DRAW_INSUFFICIENT_MATERIAL -> "Patta per materiale insufficiente.";
+            case TIMEOUT_WHITE -> "Tempo Scaduto! Il Nero vince.";
+            case TIMEOUT_BLACK -> "Tempo Scaduto! Il Bianco vince.";
             default -> null;
         };
-        if (message != null && view != null) {
-            view.showMessage(message, "Fine Partita");
+        if (message != null) {
+            if (timer != null) {
+                timer.stop();
+            }
+            if (view != null) {
+                view.showMessage(message, "Fine Partita");
+            }
         }
     }
 

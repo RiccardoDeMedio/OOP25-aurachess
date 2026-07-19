@@ -163,4 +163,12 @@ public interface ChessView {
      * Closes the application permanently.
      */
     void exitApplication();
+
+    /**
+     * Updates the text of the timers on the display.
+     *
+     * @param whiteTime the formatted string representing White's remaining time
+     * @param blackTime the formatted string representing Black's remaining time
+     */
+    void updateTimerDisplay(String whiteTime, String blackTime);
 }

@@ -324,6 +324,11 @@ class ControllerTest {
         }
 
         @Override
+        public void updateTimerDisplay(final String whiteTime, final String blackTime) {
+            // no-op
+        }
+
+        @Override
         public void showMessage(final String message, final String title) {
             // no-op
         }

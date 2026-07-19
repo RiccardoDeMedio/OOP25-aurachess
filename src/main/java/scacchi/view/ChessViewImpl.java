@@ -2,22 +2,28 @@ package scacchi.view;
 
 import scacchi.model.board.Position;
 import javax.imageio.ImageIO;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.WindowConstants;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.SwingUtilities;
-import javax.swing.JOptionPane;
-import javax.swing.ImageIcon;
-import java.awt.GridLayout;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Toolkit;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.RenderingHints;
+import java.awt.Toolkit;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
 import java.io.IOException;
 import java.io.Serial;
 import java.net.URL;
@@ -27,8 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
 
 /**
  * Implementation of the chessboard's graphical interface.
@@ -41,17 +45,18 @@ public final class ChessViewImpl implements ChessView {
     private static final float ICON_POPUP_PERCENTAGE = 0.80F;
     private static final int DEFAULT_ICON_SIZE = 64;
 
-    // Constants for AuroMeter
-    private static final int PRECISION_BAR_WIDTH = 40;
     private static final int PRECISION_MIN = 0;
     private static final int PRECISION_MAX = 100;
     private static final int PRECISION_DEFAULT = 50;
     private static final int PRECISION_HIGH_THRESHOLD = 80;
     private static final int PRECISION_MID_THRESHOLD = 50;
+    private static final int TIMER_PANEL_PADDING = 20;
 
     private final JButton undoButton = new JButton("Undo Move");
     private final JButton saveButton = new JButton("Save Game");
     private final JButton loadButton = new JButton("Load Game");
+    private final JLabel whiteTimerLabel = new JLabel("10:00");
+    private final JLabel blackTimerLabel = new JLabel("10:00");
     private final JButton deleteSavesButton = new JButton("Delete Saves");
     private final JProgressBar precisionBar = new JProgressBar(JProgressBar.VERTICAL, PRECISION_MIN, PRECISION_MAX);
     private final JFrame frame;
@@ -80,6 +85,9 @@ public final class ChessViewImpl implements ChessView {
         // Set to null to center the image.
         frame.setLocationRelativeTo(null);
 
+        final int dynamicBarWidth = Math.max(20, windowSize / 15);
+        final int dynamicFontSize = Math.max(16, windowSize / 25);
+
         final int minSize = windowSize / 2;
         frame.setMinimumSize(new Dimension(minSize, minSize));
 
@@ -99,12 +107,28 @@ public final class ChessViewImpl implements ChessView {
         // how accurately the game is currently being played.
         precisionBar.setValue(PRECISION_DEFAULT);
         precisionBar.setStringPainted(true);
-        precisionBar.setPreferredSize(new Dimension(PRECISION_BAR_WIDTH, windowSize));
+        precisionBar.setPreferredSize(new Dimension(dynamicBarWidth, windowSize));
         precisionBar.setForeground(computeColorForPrecision(PRECISION_DEFAULT));
+
+        final JPanel timerPanel = new JPanel();
+        timerPanel.setLayout(new GridLayout(2, 1));
+
+        final Font timerFont = new Font(Font.SANS_SERIF, Font.BOLD, dynamicFontSize);
+        whiteTimerLabel.setFont(timerFont);
+        blackTimerLabel.setFont(timerFont);
+        whiteTimerLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        blackTimerLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        timerPanel.setBorder(BorderFactory.createEmptyBorder(
+                TIMER_PANEL_PADDING, TIMER_PANEL_PADDING,
+                TIMER_PANEL_PADDING, TIMER_PANEL_PADDING));
+        timerPanel.add(blackTimerLabel);
+        timerPanel.add(whiteTimerLabel);
 
         frame.add(boardPanel, BorderLayout.CENTER);
         frame.add(controlPanel, BorderLayout.SOUTH);
         frame.add(precisionBar, BorderLayout.EAST);
+        frame.add(timerPanel, BorderLayout.WEST);
     }
 
     private void initializeBoard(final JPanel boardPanel) {
@@ -389,6 +413,14 @@ public final class ChessViewImpl implements ChessView {
     @Override
     public void exitApplication() {
         System.exit(0);
+    }
+
+    @Override
+    public void updateTimerDisplay(final String whiteTime, final String blackTime) {
+        SwingUtilities.invokeLater(() -> {
+           whiteTimerLabel.setText(whiteTime);
+           blackTimerLabel.setText(blackTime);
+        });
     }
 
     /**
