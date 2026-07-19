@@ -131,7 +131,7 @@ class AuraEngineTest {
         final Move m2 = new Move(new Position(4, BLACK_PAWN_START_ROW), new Position(4, 4));
         engine.calculatePrecision(board2, m2, false);
 
-        final int avg = engine.averagePrecision();
+        final int avg = engine.averagePrecision(true);
 
         LOGGER.info(LOG_PUNTEGGIO + avg);
 

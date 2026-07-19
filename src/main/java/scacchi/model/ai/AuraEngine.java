@@ -32,7 +32,8 @@ public class AuraEngine {
     private static final List<Position> ALL_POSITIONS = buildAllPosition();
 
     private final int maxDepth;
-    private final List<Integer> allEvalutations;
+    private final List<Integer> whiteEvalutations;
+    private final List<Integer> blackEvaluations;
     private final int[][] pieceTable = {
         {
                 0, 0, 0, 0, 0, 0, 0, 0, 50, 50, 50, 50, 50, 50, 50, 50, 10, 10, 20, 30, 30, 20, 10, 10, 5, 5, 10, 25, 25,
@@ -80,7 +81,8 @@ public class AuraEngine {
     public AuraEngine(final int maxDepth) {
         this.nodesVisited = 0;
         this.maxDepth = maxDepth;
-        this.allEvalutations = new ArrayList<>();
+        this.whiteEvalutations = new ArrayList<>();
+        this.blackEvaluations = new ArrayList<>();
     }
 
     /**
@@ -319,25 +321,31 @@ public class AuraEngine {
         final int loss = calculateLoss(board, move, isWhite);
         final int minimum = 0;
         final int precision = Math.max(minimum, BEST_PRECISION - loss);
-        allEvalutations.add(precision);
+        if (isWhite) {
+            whiteEvalutations.add(precision);
+        } else {
+            blackEvaluations.add(precision);
+        }
         return precision;
     }
 
     /**
-     * Returns average precision.
-     *
+     * Returns average precision of one player.
+     * 
+     * @param isWhite determines which player.
      * @return average precision
      */
-    public int averagePrecision() {
-        if (allEvalutations.isEmpty()) {
+    public int averagePrecision(final boolean isWhite) {
+        final List<Integer> evaluations = isWhite ? whiteEvalutations : blackEvaluations;
+        if (evaluations.isEmpty() && isWhite) {
             return BEST_PRECISION / 2;
         }
         final int averagePrecision;
         int totalPrecision = 0;
-        for (final Integer precision : allEvalutations) {
+        for (final Integer precision : evaluations) {
             totalPrecision = totalPrecision + precision;
         }
-        averagePrecision = totalPrecision / allEvalutations.size();
+        averagePrecision = totalPrecision / evaluations.size();
         return averagePrecision;
     }
 
@@ -450,10 +458,14 @@ public class AuraEngine {
      * Removes the last recorded precision evaluation, so that a move which
      * gets undone no longer contributes to {@link #averagePrecision()}.
      * Does nothing if no evaluation has been recorded yet.
+     * 
+     * @param isWhite determines which player
      */
-    public void removeLastEvaluation() {
-        if (!allEvalutations.isEmpty()) {
-            allEvalutations.removeLast();
+    public void removeLastEvaluation(final boolean isWhite) {
+        if (!whiteEvalutations.isEmpty() && isWhite) {
+            whiteEvalutations.removeLast();
+        } else if (!blackEvaluations.isEmpty() && !isWhite) {
+            blackEvaluations.removeLast();
         }
     }
 

@@ -491,7 +491,8 @@ public final class Controller {
             }
             clearSelection();
             if (view != null && hasEngine()) {
-                view.updatePrecisionBar(engine.averagePrecision());
+                final boolean isWhite = board.getActiveColor() == 'w';
+                view.updatePrecisionBar(engine.averagePrecision(isWhite));
             }
         }
         return firstRollback;
@@ -508,7 +509,8 @@ public final class Controller {
         }
         final boolean wasTracked = trackedMoveLog.pop();
         if (wasTracked && hasEngine()) {
-            engine.removeLastEvaluation();
+            final boolean isWhite = board.getActiveColor() == 'w';
+            engine.removeLastEvaluation(isWhite);
         }
     }
 
@@ -841,11 +843,12 @@ public final class Controller {
             trackedMoveLog.push(false);
             return; // We do not track the precision of the moves played by the CPU.
         }
+        final boolean isWhite = movingColor == PieceColor.WHITE;
         final AuraEngine.Move humanMove = new AuraEngine.Move(from, to);
-        engine.calculatePrecision(board, humanMove, movingColor == PieceColor.WHITE);
+        engine.calculatePrecision(board, humanMove, isWhite);
         trackedMoveLog.push(true);
         if (view != null) {
-            view.updatePrecisionBar(engine.averagePrecision());
+            view.updatePrecisionBar(engine.averagePrecision(isWhite));
         }
     }
 
