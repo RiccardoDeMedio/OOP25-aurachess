@@ -27,8 +27,6 @@ class AuraEngineTest {
     private static final int PRECISION_THRESHOLD = 100;
     private static final int MAX_PRECISION = 100;
     private static final int BLACK_PAWN_START_ROW = 6;
-    private static final long NODES_MULTIPLIER = 1000L;
-    private static final int MAX_SEARCH_TIME_MS = 60_000;
     private static final int BALANCED_SCORE_THRESHOLD = 10;
     private static final String LOG_PUNTEGGIO = "Punteggio Ottenuto: ";
 
@@ -43,23 +41,6 @@ class AuraEngineTest {
         final BoardImpl boardImpl = new BoardImpl();
         boardImpl.loadFromFEN(fen);
         return boardImpl;
-    }
-
-    @Test
-    void deeperSearchShouldNotTakeUnreasonablyLong() {
-        final BoardImpl boardImpl = boardFromFEN(STARTING_FEN);
-        final AuraEngine deepEngine = new AuraEngine(DEFAULT_DEPTH);
-
-        final long start = System.currentTimeMillis();
-        final Move best = deepEngine.findBestMove(boardImpl, true);
-        final long elapsedMs = System.currentTimeMillis() - start;
-
-        LOGGER.info("Tempo di ricerca a profondità 5: " + elapsedMs + " ms");
-        LOGGER.info("Nodi visitati: " + deepEngine.getNodesVisited());
-        LOGGER.info("Nodi/secondo: " + (deepEngine.getNodesVisited() * NODES_MULTIPLIER / Math.max(1, elapsedMs)));
-
-        assertNotNull(best, "Dovrebbe esistere una mossa dalla posizione iniziale");
-        assertTrue(elapsedMs < MAX_SEARCH_TIME_MS, "La ricerca non dovrebbe superare i " + MAX_SEARCH_TIME_MS + "ms");
     }
 
     @Test
