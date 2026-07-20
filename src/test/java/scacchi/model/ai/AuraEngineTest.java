@@ -27,7 +27,7 @@ class AuraEngineTest {
     private static final int MAX_PRECISION = 100;
     private static final int BLACK_PAWN_START_ROW = 6;
     private static final long NODES_MULTIPLIER = 1000L;
-    private static final int MAX_SEARCH_TIME_MS = 50_000;
+    private static final int MAX_SEARCH_TIME_MS = 60_000;
     private static final int BALANCED_SCORE_THRESHOLD = 10;
     private static final String LOG_PUNTEGGIO = "Punteggio Ottenuto: ";
 

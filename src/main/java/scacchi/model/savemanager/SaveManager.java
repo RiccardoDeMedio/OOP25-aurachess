@@ -13,19 +13,22 @@ public interface SaveManager {
     /**
      * Takes the current board, extracts the FEN history and saves it to a .fen file.
      *
-     * @param fileName the name that the game we're trying to save will have
-     * @param board the board that we want to save
+     * @param fileName    the name that the game we're trying to save will have
+     * @param board       the board that we want to save
+     * @param whiteTimeMs the actual time remaining for the White Player
+     * @param blackTimeMs the actual time remaining for the Black Player
      */
-    void saveGame(String fileName, Board board) throws IOException;
+    void saveGame(String fileName, Board board, long whiteTimeMs, long blackTimeMs) throws IOException;
 
     /**
      * Reads a .fen file line by line and reconstructs the entire history in the board.
      *
      * @param fileName Name of the game file to load
      * @param boardImpl Board where the game is loaded
+     * @return the whiteTimeMs and blackTimeMs
      * @throws IOException If the save game you are looking for is not found
      */
-    void loadGame(String fileName, BoardImpl boardImpl) throws IOException;
+    long[] loadGame(String fileName, BoardImpl boardImpl) throws IOException;
 
     /**
      * Retrieves the names of all available save files (without the extension).
