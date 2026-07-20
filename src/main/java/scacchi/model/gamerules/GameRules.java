@@ -71,10 +71,10 @@ public final class GameRules {
     }
  
     /**
-     * Converts a square in algebraic notation (es. "e3") into a {@link Position}.
+     * Converts a square in algebraic notation.
      *
-     * @param algebraic the algebraic string
-     * @return the corresponding position
+     * @param algebraic the square represented in algebraic notation
+     * @return an Optional containing the corresponding Position, or empty if invalid
      */
     public static Optional<Position> algebraicToPosition(final String algebraic) {
         if (algebraic == null || algebraic.length() != ALGEBRAIC_LENGTH) {
@@ -89,10 +89,10 @@ public final class GameRules {
     }
  
     /**
-     * Converts a {@link Position} into the corresponding algebraic notation (es. "e3").
+     * Converts a position into algebraic notation.
      *
-     * @param pos the position to be converted
-     * @return the string in algebraic notation
+     * @param pos the board position to convert
+     * @return the string representation in algebraic notation
      */
     public static String positionToAlgebraic(final Position pos) {
         final char file = (char) (FILE_A + pos.x());
