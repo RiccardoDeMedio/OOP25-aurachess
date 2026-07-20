@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import scacchi.model.board.Board;
 import scacchi.model.board.BoardImpl;
 import scacchi.model.board.Position;
 import scacchi.model.gamerules.GameRules;
@@ -18,7 +19,8 @@ import scacchi.model.pieces.PieceFactory;
 public class AuraEngine {
 
     private static final int CHECK_POINTS = 50;
-    //private static final int END_TABLE_SPOTS = 1;
+    private static final int END_TABLE_SPOTS = 1;
+    private static final int ENDGAME_THRESHOLD = 12;
     private static final int KING_TYPE_START = 5;
     private static final int POSITION_DIFFERENCE_CASTLING = 2;
     private static final int KING_SHORT_CASTLING = 6;
@@ -154,34 +156,36 @@ public class AuraEngine {
         return index;
     }
 
-    private int evaluateBoard(final BoardImpl boardImpl, final List<PlacedPiece> allPieces) {
+    private int evaluateBoard(final Board board, final List<PlacedPiece> allPieces) {
         int totalScore = 0;
         Position whiteKingPos = null;
         Position blackKingPos = null;
+        final boolean isEndGame = allPieces.size() <= ENDGAME_THRESHOLD;
         for (final PlacedPiece piece : allPieces) {
             final int pieceValue;
             if (piece.piece().getType() == KING_TYPE_START) {
+                if (isEndGame) {
+                    pieceValue = piece.piece().getValue()
+                + pieceTable[piece.piece().getType() + END_TABLE_SPOTS]
+                [tableConversion(piece.position(), piece.piece().getColor())];
+                } else {
                 pieceValue = piece.piece().getValue()
                         + pieceTable[piece.piece().getType()][tableConversion(piece.position(), piece.piece().getColor())];
+                }
                 if (piece.piece().getColor() == PieceColor.BLACK) {
                     blackKingPos = piece.position();
                 } else if (piece.piece().getColor() == PieceColor.WHITE) {
                     whiteKingPos = piece.position();
                 }
-                /*
-                if is endgame
-                pieceValue = piece.piece().getValue()
-                + pieceTable[piece.piece().getType() + END_TABLE_SPOTS][tableConversion(piece.position())];
-                */
             } else {
                 pieceValue = piece.piece().getValue()
                         + pieceTable[piece.piece().getType()][tableConversion(piece.position(), piece.piece().getColor())];
             }
             totalScore = totalScore + pieceValue * piece.piece().getColor().getSign();
         }
-        if (blackKingPos != null && GameRules.isSquareAttacked(blackKingPos, PieceColor.WHITE, boardImpl)) {
+        if (blackKingPos != null && GameRules.isSquareAttacked(blackKingPos, PieceColor.WHITE, board)) {
             totalScore = totalScore + CHECK_POINTS;
-        } else if (whiteKingPos != null && GameRules.isSquareAttacked(whiteKingPos, PieceColor.BLACK, boardImpl)) {
+        } else if (whiteKingPos != null && GameRules.isSquareAttacked(whiteKingPos, PieceColor.BLACK, board)) {
             totalScore = totalScore - CHECK_POINTS;
         }
         return totalScore;

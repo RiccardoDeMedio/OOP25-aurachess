@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import scacchi.model.ai.AuraEngine.Move;
+import scacchi.model.board.Board;
 import scacchi.model.board.BoardImpl;
 import scacchi.model.board.Position;
 import scacchi.model.pieces.PieceColor;
@@ -140,9 +141,9 @@ class AuraEngineTest {
 
     @Test
     void shouldChooseCastlingWhenBest() {
-        final BoardImpl boardImpl = boardFromFEN("4k3/8/8/8/8/8/8/4K2R w K - 0 1");
+        final BoardImpl board = boardFromFEN("rnbqkbnr/pppppppp/8/8/8/8/8/4K2R w K - 0 1");
         final AuraEngine deepEngine = new AuraEngine(TACTICAL_DEPTH);
-        final Move best = deepEngine.findBestMove(boardImpl, true);
+        final Move best = deepEngine.findBestMove(board, true);
 
         assertNotNull(best, "Dovrebbe esistere la mossa");
 
@@ -228,7 +229,7 @@ class AuraEngineTest {
         @SuppressWarnings("PMD.AvoidAccessibilityAlteration")
         static int evaluateBoard(final AuraEngine engine, final BoardImpl boardImpl) {
             try {
-                final Method evalMethod = AuraEngine.class.getDeclaredMethod("evaluateBoard", BoardImpl.class, List.class);
+                final Method evalMethod = AuraEngine.class.getDeclaredMethod("evaluateBoard", Board.class, List.class);
                 evalMethod.setAccessible(true);
 
                 return (int) evalMethod.invoke(engine, boardImpl, engine.getAllPieces(boardImpl));
