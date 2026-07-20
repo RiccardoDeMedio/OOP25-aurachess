@@ -26,7 +26,7 @@ import scacchi.view.ChessView;
  * Manages game events: square selection, move validation and execution
  * (including special moves: castling, en passant, promotion),
  * undoing moves, saving/loading the game, and optionally delegating
- * a move to the {@link AuraEngine} CPU opponent.
+ * a move to the CPU opponent.
  */
 public final class Controller {
 
@@ -65,7 +65,7 @@ public final class Controller {
     private ChessClock chessClock;
     private final Timer timer;
 
-    // --- CPU opponent state -------------------------------------------------
+    // CPU opponent state
     // computerColor: which side (if any) the engine plays automatically.
     // null means automatic play is disabled; playEngineMove() can still be
     // invoked manually regardless of this flag.
@@ -76,21 +76,20 @@ public final class Controller {
     private volatile boolean engineThinking;
 
     /** 
-     * Una entry per OGNI semi-mossa giocata tramite executeMove (umana o
-     * del computer): true se a quella mossa corrisponde una valutazione
-     * registrata in AuraEngine (quindi da rimuovere in caso di undo),
-     * false se non è stata tracciata (mossa del computer, o nessun engine
-     * collegato). Serve per restare sincronizzati con i due rollback
-     * effettuati da undoMove().
+     * An entry for EVERY half-move played via executeMove (human or computer):
+     * true if that move corresponds to an evaluation recorded in AuraEngine
+     * (and thus needs to be removed in case of undo), false if it was not tracked
+     * (computer move, or no engine connected). Used to stay synchronized with the two
+     * rollbacks performed by undoMove().
      */
     private final Deque<Boolean> trackedMoveLog = new ArrayDeque<>();
 
     /**
-     * Cronologia delle precisioni calcolate per ogni mossa "tracciata" (umana,
-     * con engine collegato). Parallela a engine.getAllPlayerMoves()/getAllBestMoves():
-     * ad ogni elemento aggiunto in trackMovePrecision() corrisponde un elemento
-     * aggiunto in allPlayerMoves/allBestMoves, ed entrambi vengono rimossi insieme
-     * in caso di undo, cosicché le tre liste restino sempre allineate per indice.
+     * History of calculated precisions for each "tracked" move (human,
+     * with connected engine). Parallel to engine.getAllPlayerMoves()/getAllBestMoves():
+     * each element added in trackMovePrecision() corresponds to an element
+     * added in allPlayerMoves/allBestMoves, and both are removed together
+     * in case of undo, so that the three lists always remain aligned by index.
      */
     private final List<Integer> precisionHistory = new ArrayList<>();
 
@@ -182,7 +181,7 @@ public final class Controller {
 
     /**
      * Connects (or disconnects, passing {@code null}) the CPU engine that this controller
-     * can delegate moves to via {@link #playEngineMove()}.
+     * can delegate moves to via.
      *
      * @param engine the AuraEngine instance to use, or null to disable CPU play
      */
@@ -194,7 +193,7 @@ public final class Controller {
     /**
      * Returns whether a CPU engine is currently connected to this controller.
      *
-     * @return true if an engine has been set via {@link #setEngine(AuraEngine)}
+     * @return true if an engine has been set via
      */
     public boolean hasEngine() {
         return engine != null;
@@ -516,9 +515,8 @@ public final class Controller {
     }
 
     /**
-     * Rimuove dallo storico dell'engine la valutazione di precisione (se
-     * presente) corrispondente all'ultima semi-mossa, in seguito a un
-     * rollback effettivamente avvenuto.
+     * Removes the precision evaluation (if present) corresponding to the last
+     * half-move from the engine history, following an executed rollback.
      */
     private void undoTrackedPrecision() {
         if (trackedMoveLog.isEmpty()) {
@@ -613,19 +611,12 @@ public final class Controller {
     }
 
     /**
-     * Asks the connected {@link AuraEngine} for the best move for the side currently to move,
-     * plays it through the same {@link #selectSquare(Position)} pipeline used for human moves
-     * (so undo history, castling, en passant and promotion are all handled identically),
-     * and refreshes the view.
-     * Promotions chosen by the engine always default to a queen, matching
-     * {@link #DEFAULT_PROMOTION_CHOICE}, since {@link AuraEngine.Move} carries no
-     * promotion-piece information.
-     * This method is synchronous and safe to call directly (e.g. from a manual
-     * "CPU move" button) as well as from the background thread spawned by
-     * {@link #maybeTriggerEngineMove()}.
+     * This method retrieves and executes the best move from the connected AuraEngine
+     * for the current player. It processes the move through the standard human move pipeline
+     * to ensure that game state, such as history, castling, and en passant, is correctly maintained
+     * and the UI is updated.
      *
-     * @return the outcome of the move actually played, or {@link MoveOutcome#NO_ENGINE_MOVE_AVAILABLE}
-     *         if no engine is connected or the engine found no legal move (checkmate/stalemate)
+     * @return the outcome of the engine's move attempt
      */
     public MoveOutcome playEngineMove() {
         if (engine == null) {
@@ -650,16 +641,8 @@ public final class Controller {
     }
 
     /**
-     * Triggers an asynchronous engine move when all of the following hold:
-     * an engine is connected, no engine move is already in progress, automatic
-     * CPU play is enabled, and it is currently the CPU-controlled color's turn.
-     * The actual computation runs on a {@link SwingWorker} background thread
-     * via {@link #playEngineMove()}, keeping the Swing Event Dispatch Thread free
-     * while the (possibly slow) minimax search runs. Whether a legal move exists
-     * is determined entirely by {@link #playEngineMove()} itself (it already
-     * returns {@link MoveOutcome#NO_ENGINE_MOVE_AVAILABLE} on checkmate/stalemate,
-     * since {@link AuraEngine#findBestMove} returns {@code null} in that case) —
-     * no game-end logic is duplicated here.
+     * This method initiates an asynchronous CPU move, provided an engine is connected, no move is
+     * currently in progress, automatic CPU play is enabled, and it is the computer's turn.
      */
     private void maybeTriggerEngineMove() {
         if (!hasEngine() || engineThinking || computerColor == null) {
@@ -705,8 +688,8 @@ public final class Controller {
      * It validates and executes a move, handling special moves (castling, *en passant* capture, promotion)
      * and directly updating board data.
      *
-     * @param from            the starting position of the piece
-     * @param to              the destination position of the piece
+     * @param from the starting position of the piece
+     * @param to the destination position of the piece
      * @param promotionChoice the character representing the promotion piece if applicable
      * @return the outcome of the executed move
      */
@@ -729,7 +712,7 @@ public final class Controller {
             return pseudoLegal ? MoveOutcome.MOVE_LEAVES_KING_IN_CHECK : MoveOutcome.ILLEGAL_MOVE;
         }
 
-        //aggiornamento aurometro
+        // update accuracy meter
         trackMovePrecision(from, to, movingColor);
 
         // Calculation of special rules before the piece modifies the grid.
@@ -863,16 +846,14 @@ public final class Controller {
     }
 
     /**
-     * Calculate the accuracy of the move just selected
-     * (if an engine is connected and the move is not the CPU's automatic move)
-     * and update the bar in the view with the updated average accuracy.
-     * It must be called BEFORE {@code board.movePiece(from, to)}, because
-     * {@link AuraEngine#calculatePrecision} simulates and reverts the move
-     * internally using the board's current state.
+     * This method calculates the accuracy of a selected move—provided an engine is connected
+     * and the move was performed by a human—and updates the corresponding UI element with the new average.
+     * It must be executed before board.movePiece(from, to) because the underlying precision
+     * calculation relies on the board's state prior to the move to perform its internal simulation and reversal
      *
-     * @param from starting position of the move
-     * @param to destination position of the move
-     * @param movingColor color of the player whose turn it is to move
+     * @param from the starting position of the piece
+     * @param to the destination position of the piece
+     * @param movingColor the color of the piece being moved
      */
     private void trackMovePrecision(final Position from, final Position to, final PieceColor movingColor) {
         if (!hasEngine()) {
@@ -920,12 +901,11 @@ public final class Controller {
     }
 
     /**
-     * Traduce il punteggio di precisione istantaneo (0-100, calcolato da
-     * {@link AuraEngine#calculatePrecision}) in un commento testuale da
-     * mostrare al giocatore subito dopo la sua mossa.
+     * Translates the instantaneous precision score into a text comment to
+     * show to the player immediately after their move.
      *
-     * @param precision precisione della mossa appena giocata
-     * @return il commento corrispondente
+     * @param precision the precision score to evaluate
+     * @return the corresponding text comment
      */
     private String commentForPrecision(final int precision) {
         if (precision >= PRECISION_EXCELLENT_THRESHOLD) {
@@ -960,11 +940,10 @@ public final class Controller {
     }
 
     /**
-     * Costruisce e mostra il riepilogo di fine partita: ogni mossa giocata
-     * dall'umano, la relativa precisione, e la mossa migliore che l'engine
-     * avrebbe giocato al suo posto. Si basa sulle liste parallele esposte da
-     * AuraEngine (già sincronizzate con precisionHistory da trackMovePrecision
-     * e undoTrackedPrecision).
+     * Builds and displays the game summary: every move played by the human,
+     * its corresponding precision, and the best move that the engine would have played instead.
+     * Relies on the parallel lists exposed by AuraEngine (already synchronized with
+     * precisionHistory by trackMovePrecision and undoTrackedPrecision).
      */
     private void showGameReport() {
         if (view == null || !hasEngine()) {
@@ -973,7 +952,7 @@ public final class Controller {
 
         final List<AuraEngine.Move> playerMoves = engine.getAllPlayerMoves();
 
-        // Spostato prima dell'inizializzazione di bestMoves
+        // Moved before the initialization of bestMoves
         if (playerMoves.isEmpty()) {
             return;
         }
@@ -981,8 +960,8 @@ public final class Controller {
         final List<AuraEngine.Move> bestMoves = engine.getAllBestMoves();
         final int count = Math.min(playerMoves.size(), bestMoves.size());
 
-        // Si prealloca una capacità dinamica adeguata
-        // (circa 30 caratteri iniziali + 80 caratteri stimati per ogni mossa aggiunta nel ciclo)
+        // Pre-allocate adequate dynamic capacity
+        // (approx. 30 initial characters + estimated 80 characters per move added in the loop)
         final int initialCapacity = 30 + (count * 80);
         final StringBuilder report = new StringBuilder(initialCapacity);
         report.append("Riepilogo delle tue mosse:\n\n");
