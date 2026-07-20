@@ -65,7 +65,7 @@ public final class Controller {
     private ChessClock chessClock;
     private final Timer timer;
 
-    // --- CPU opponent state -------------------------------------------------
+    // CPU opponent state
     // computerColor: which side (if any) the engine plays automatically.
     // null means automatic play is disabled; playEngineMove() can still be
     // invoked manually regardless of this flag.
@@ -76,21 +76,20 @@ public final class Controller {
     private volatile boolean engineThinking;
 
     /** 
-     * Una entry per OGNI semi-mossa giocata tramite executeMove (umana o
-     * del computer): true se a quella mossa corrisponde una valutazione
-     * registrata in AuraEngine (quindi da rimuovere in caso di undo),
-     * false se non è stata tracciata (mossa del computer, o nessun engine
-     * collegato). Serve per restare sincronizzati con i due rollback
-     * effettuati da undoMove().
+     * An entry for EVERY half-move played via executeMove (human or computer):
+     * true if that move corresponds to an evaluation recorded in AuraEngine
+     * (and thus needs to be removed in case of undo), false if it was not tracked
+     * (computer move, or no engine connected). Used to stay synchronized with the two
+     * rollbacks performed by undoMove().
      */
     private final Deque<Boolean> trackedMoveLog = new ArrayDeque<>();
 
     /**
-     * Cronologia delle precisioni calcolate per ogni mossa "tracciata" (umana,
-     * con engine collegato). Parallela a engine.getAllPlayerMoves()/getAllBestMoves():
-     * ad ogni elemento aggiunto in trackMovePrecision() corrisponde un elemento
-     * aggiunto in allPlayerMoves/allBestMoves, ed entrambi vengono rimossi insieme
-     * in caso di undo, cosicché le tre liste restino sempre allineate per indice.
+     * History of calculated precisions for each "tracked" move (human,
+     * with connected engine). Parallel to engine.getAllPlayerMoves()/getAllBestMoves():
+     * each element added in trackMovePrecision() corresponds to an element
+     * added in allPlayerMoves/allBestMoves, and both are removed together
+     * in case of undo, so that the three lists always remain aligned by index.
      */
     private final List<Integer> precisionHistory = new ArrayList<>();
 
@@ -516,9 +515,8 @@ public final class Controller {
     }
 
     /**
-     * Rimuove dallo storico dell'engine la valutazione di precisione (se
-     * presente) corrispondente all'ultima semi-mossa, in seguito a un
-     * rollback effettivamente avvenuto.
+     * Removes the precision evaluation (if present) corresponding to the last
+     * half-move from the engine history, following an executed rollback.
      */
     private void undoTrackedPrecision() {
         if (trackedMoveLog.isEmpty()) {
@@ -714,7 +712,7 @@ public final class Controller {
             return pseudoLegal ? MoveOutcome.MOVE_LEAVES_KING_IN_CHECK : MoveOutcome.ILLEGAL_MOVE;
         }
 
-        //aggiornamento aurometro
+        // update accuracy meter
         trackMovePrecision(from, to, movingColor);
 
         // Calculation of special rules before the piece modifies the grid.
@@ -903,11 +901,11 @@ public final class Controller {
     }
 
     /**
-     * Traduce il punteggio di precisione istantaneo in un commento testuale da
-     * mostrare al giocatore subito dopo la sua mossa.
+     * Translates the instantaneous precision score into a text comment to
+     * show to the player immediately after their move.
      *
-     * @param precision il punteggio di precisione da valutare
-     * @return il commento testuale corrispondente
+     * @param precision the precision score to evaluate
+     * @return the corresponding text comment
      */
     private String commentForPrecision(final int precision) {
         if (precision >= PRECISION_EXCELLENT_THRESHOLD) {
@@ -942,11 +940,10 @@ public final class Controller {
     }
 
     /**
-     * Costruisce e mostra il riepilogo di fine partita: ogni mossa giocata
-     * dall'umano, la relativa precisione, e la mossa migliore che l'engine
-     * avrebbe giocato al suo posto. Si basa sulle liste parallele esposte da
-     * AuraEngine (già sincronizzate con precisionHistory da trackMovePrecision
-     * e undoTrackedPrecision).
+     * Builds and displays the game summary: every move played by the human,
+     * its corresponding precision, and the best move that the engine would have played instead.
+     * Relies on the parallel lists exposed by AuraEngine (already synchronized with
+     * precisionHistory by trackMovePrecision and undoTrackedPrecision).
      */
     private void showGameReport() {
         if (view == null || !hasEngine()) {
@@ -955,7 +952,7 @@ public final class Controller {
 
         final List<AuraEngine.Move> playerMoves = engine.getAllPlayerMoves();
 
-        // Spostato prima dell'inizializzazione di bestMoves
+        // Moved before the initialization of bestMoves
         if (playerMoves.isEmpty()) {
             return;
         }
@@ -963,8 +960,8 @@ public final class Controller {
         final List<AuraEngine.Move> bestMoves = engine.getAllBestMoves();
         final int count = Math.min(playerMoves.size(), bestMoves.size());
 
-        // Si prealloca una capacità dinamica adeguata
-        // (circa 30 caratteri iniziali + 80 caratteri stimati per ogni mossa aggiunta nel ciclo)
+        // Pre-allocate adequate dynamic capacity
+        // (approx. 30 initial characters + estimated 80 characters per move added in the loop)
         final int initialCapacity = 30 + (count * 80);
         final StringBuilder report = new StringBuilder(initialCapacity);
         report.append("Riepilogo delle tue mosse:\n\n");
