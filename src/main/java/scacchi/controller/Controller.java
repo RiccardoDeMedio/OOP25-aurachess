@@ -13,9 +13,9 @@ import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import scacchi.model.ai.AuraEngine;
 import scacchi.model.gamerules.GameRules;
-import scacchi.model.board.Board;
+import scacchi.model.board.BoardImpl;
 import scacchi.model.board.Position;
-import scacchi.model.board.SaveManager;
+import scacchi.model.savemanager.SaveManager;
 import scacchi.model.pieces.Piece;
 import scacchi.model.pieces.PieceFactory;
 import scacchi.model.pieces.PieceColor;
@@ -57,14 +57,14 @@ public final class Controller {
     private static final String COMMENT_MISTAKE = "Errore";
     private static final String COMMENT_BLUNDER = "Mossa pessima!";
 
-    private final Board board;
-    private final SaveManager saveManager = new SaveManager();
+    private final BoardImpl boardImpl;
+    private final SaveManager saveManager;
     private Position selectedSquare;
     private ChessView view;
     private AuraEngine engine;
     private int currentDifficulty = 3; // Default difficulty level
     private ChessClock chessClock;
-    private Timer timer;
+    private final Timer timer;
 
     // --- CPU opponent state -------------------------------------------------
     // computerColor: which side (if any) the engine plays automatically.
@@ -126,20 +126,26 @@ public final class Controller {
     /**
      * Create a controller that operates on the specified board.
      *
-     * @param board the current game board
+     * @param boardImpl board the current game board
+     * @param view view the graphical representation
+     * @param saveManager view the graphical representation
      */
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(EI_EXPOSE_REP2_WARNING)
-    public Controller(final Board board) {
-        if (board == null) {
+    public Controller(final BoardImpl boardImpl, final ChessView view, final SaveManager saveManager) {
+        if (boardImpl == null) {
             throw new IllegalArgumentException("la board non può essere nulla");
         }
-        this.board = board;
+        if (saveManager == null) {
+            throw new IllegalArgumentException("Il saveManager non può essere nullo");
+        }
+        this.boardImpl = boardImpl;
+        this.saveManager = saveManager;
 
         this.chessClock = new ChessClock(INITIAL_TIME_MS, 0);
 
         this.timer = new Timer(100, e -> {
             if (getGameStatus() == GameStatus.ONGOING || getGameStatus() == GameStatus.CHECK) {
-                final boolean isWhiteTurn = board.getActiveColor() == 'w';
+                final boolean isWhiteTurn = boardImpl.getActiveColor() == 'w';
                 chessClock.tick(100, isWhiteTurn);
             }
 
@@ -148,21 +154,12 @@ public final class Controller {
             }
 
             if (chessClock.isTimeOut()) {
-                timer.stop();
+                ((Timer) e.getSource()).stop();
                 checkGameEnd();
             }
         });
         this.timer.start();
-    }
 
-    /**
-     * Create a controller with both board and view.
-     *
-     * @param board the current game board
-     * @param view the graphical representation
-     */
-    public Controller(final Board board, final ChessView view) {
-        this(board);
         setView(view);
     }
 
@@ -248,7 +245,7 @@ public final class Controller {
                     view.highlightSquare(pos);
                 }
 
-                final Optional<Piece> pieceOpt = board.getPieceAt(pos);
+                final Optional<Piece> pieceOpt = boardImpl.getPieceAt(pos);
                 if (pieceOpt.isPresent()) {
                     view.drawPiece(pos, pieceOpt.get().getFenChar());
                 } else {
@@ -270,13 +267,13 @@ public final class Controller {
         if (selectedSquare != null) {
             final Position from = selectedSquare;
 
-            final boolean isPromotionMove = board.getPieceAt(from)
+            final boolean isPromotionMove = boardImpl.getPieceAt(from)
                     .filter(piece -> GameRules.isPromotion(pos, piece))
-                    .filter(piece -> GameRules.getLegalMoves(from, board).contains(pos))
+                    .filter(piece -> GameRules.getLegalMoves(from, boardImpl).contains(pos))
                     .isPresent();
 
             if (isPromotionMove) {
-                final boolean isWhite = board.getActiveColor() == 'w';
+                final boolean isWhite = boardImpl.getActiveColor() == 'w';
                 final char choice = view.askPromotionChoice(isWhite);
                 outcome = selectSquare(pos, choice);
             } else {
@@ -462,7 +459,7 @@ public final class Controller {
      * @return a set of positions representing the legal moves
      */
     public Set<Position> getLegalMovesFrom(final Position pos) {
-        return GameRules.getLegalMoves(pos, board);
+        return GameRules.getLegalMoves(pos, boardImpl);
     }
 
     /**
@@ -471,9 +468,9 @@ public final class Controller {
      * @return the state of the current game
      */
     public GameStatus getGameStatus() {
-        final PieceColor activeColor = board.getActiveColor() == 'w' ? PieceColor.WHITE : PieceColor.BLACK;
-        final boolean inCheck = GameRules.isKingInCheck(activeColor, board);
-        final boolean noMoves = GameRules.hasNoLegalMove(activeColor, board);
+        final PieceColor activeColor = boardImpl.getActiveColor() == 'w' ? PieceColor.WHITE : PieceColor.BLACK;
+        final boolean inCheck = GameRules.isKingInCheck(activeColor, boardImpl);
+        final boolean noMoves = GameRules.hasNoLegalMove(activeColor, boardImpl);
 
         if (chessClock != null && chessClock.isWhiteTimeOut()) {
             return GameStatus.TIMEOUT_WHITE;
@@ -487,13 +484,13 @@ public final class Controller {
         if (!inCheck && noMoves) {
             return GameStatus.STALEMATE;
         }
-        if (GameRules.isFiftyMoveRule(board)) {
+        if (GameRules.isFiftyMoveRule(boardImpl)) {
             return GameStatus.DRAW_FIFTY_MOVE_RULE;
         }
-        if (GameRules.isThreefoldRepetition(board)) {
+        if (GameRules.isThreefoldRepetition(boardImpl)) {
             return GameStatus.DRAW_THREEFOLD_REPETITION;
         }
-        if (GameRules.isInsufficientMaterial(board)) {
+        if (GameRules.isInsufficientMaterial(boardImpl)) {
             return GameStatus.DRAW_INSUFFICIENT_MATERIAL;
         }
         if (inCheck) {
@@ -509,16 +506,16 @@ public final class Controller {
      *         false if the history was already empty
      */
     public boolean undoMove() {
-        final boolean firstRollback = board.rollback();
+        final boolean firstRollback = boardImpl.rollback();
         if (firstRollback) {
             undoTrackedPrecision();
-            final boolean secondRollback = board.rollback();
+            final boolean secondRollback = boardImpl.rollback();
             if (secondRollback) {
                 undoTrackedPrecision();
             }
             clearSelection();
             if (view != null && hasEngine()) {
-                final boolean isWhite = board.getActiveColor() == 'w';
+                final boolean isWhite = boardImpl.getActiveColor() == 'w';
                 view.updatePrecisionBar(engine.averagePrecision(isWhite));
             }
         }
@@ -540,7 +537,7 @@ public final class Controller {
                 precisionHistory.removeLast();
             }
             if (hasEngine()) {
-                final boolean isWhite = board.getActiveColor() == 'w';
+                final boolean isWhite = boardImpl.getActiveColor() == 'w';
                 engine.removeLastEvaluation(isWhite);
             }
         }
@@ -553,7 +550,7 @@ public final class Controller {
      * @throws IOException in the event of clerical errors
      */
     public void saveGame(final String fileName) throws IOException {
-        saveManager.saveGame(fileName, board);
+        saveManager.saveGame(fileName, boardImpl);
     }
 
     /**
@@ -563,7 +560,7 @@ public final class Controller {
      * @throws IOException in the event of reading errors
      */
     public void loadGame(final String fileName) throws IOException {
-        saveManager.loadGame(fileName, board);
+        saveManager.loadGame(fileName, boardImpl);
         clearSelection();
 
         // Collateral state reset
@@ -645,8 +642,8 @@ public final class Controller {
 
         clearSelection();
 
-        final boolean isWhite = board.getActiveColor() == 'w';
-        final AuraEngine.Move bestMove = engine.findBestMove(board, isWhite);
+        final boolean isWhite = boardImpl.getActiveColor() == 'w';
+        final AuraEngine.Move bestMove = engine.findBestMove(boardImpl, isWhite);
         if (bestMove == null) {
             return MoveOutcome.NO_ENGINE_MOVE_AVAILABLE;
         }
@@ -677,7 +674,7 @@ public final class Controller {
             return;
         }
 
-        final PieceColor active = board.getActiveColor() == 'w' ? PieceColor.WHITE : PieceColor.BLACK;
+        final PieceColor active = boardImpl.getActiveColor() == 'w' ? PieceColor.WHITE : PieceColor.BLACK;
         if (active != computerColor) {
             return;
         }
@@ -707,8 +704,8 @@ public final class Controller {
     }
 
     private boolean belongsToActiveColor(final Position pos) {
-        return board.getPieceAt(pos)
-                .map((final Piece piece) -> Character.isUpperCase(piece.getFenChar()) == (board.getActiveColor() == 'w'))
+        return boardImpl.getPieceAt(pos)
+                .map((final Piece piece) -> Character.isUpperCase(piece.getFenChar()) == (boardImpl.getActiveColor() == 'w'))
                 .orElse(false);
     }
 
@@ -722,7 +719,7 @@ public final class Controller {
      * @return the outcome of the executed move
      */
     private MoveOutcome executeMove(final Position from, final Position to, final char promotionChoice) {
-        final Optional<Piece> movingPieceOpt = board.getPieceAt(from);
+        final Optional<Piece> movingPieceOpt = boardImpl.getPieceAt(from);
         if (movingPieceOpt.isEmpty()) {
             return MoveOutcome.INVALID_SELECTION;
         }
@@ -734,9 +731,9 @@ public final class Controller {
         final boolean isKing = movingType == 'k';
         final boolean isPawn = movingType == 'p';
 
-        final Set<Position> legalMoves = GameRules.getLegalMoves(from, board);
+        final Set<Position> legalMoves = GameRules.getLegalMoves(from, boardImpl);
         if (!legalMoves.contains(to)) {
-            final boolean pseudoLegal = movingPiece.getValidMoves(from, board).contains(to);
+            final boolean pseudoLegal = movingPiece.getValidMoves(from, boardImpl).contains(to);
             return pseudoLegal ? MoveOutcome.MOVE_LEAVES_KING_IN_CHECK : MoveOutcome.ILLEGAL_MOVE;
         }
 
@@ -747,18 +744,18 @@ public final class Controller {
         final boolean isCastling = isKing && Math.abs(to.x() - from.x()) == CASTLING_KING_DELTA;
 
         // En passant check decoupled from GameRules (prevents incorrect removals due to external bugs)
-        final boolean isEnPassant = isPawn && from.x() != to.x() && board.isEmpty(to);
+        final boolean isEnPassant = isPawn && from.x() != to.x() && boardImpl.isEmpty(to);
 
-        final boolean isCapture = !board.isEmpty(to) || isEnPassant;
+        final boolean isCapture = !boardImpl.isEmpty(to) || isEnPassant;
         final boolean isPawnDoubleStep = isPawn && Math.abs(to.y() - from.y()) == PAWN_DOUBLE_STEP_DELTA;
         final boolean isPromotion = GameRules.isPromotion(to, movingPiece);
 
-        final String castlingRightsBefore = board.getCastlingRights();
-        final int halfmoveClockBefore = board.getHalfmoveClock();
-        final int fullmoveNumberBefore = board.getFullmoveNumber();
+        final String castlingRightsBefore = boardImpl.getCastlingRights();
+        final int halfmoveClockBefore = boardImpl.getHalfmoveClock();
+        final int fullmoveNumberBefore = boardImpl.getFullmoveNumber();
 
         // Moves the piece on the board (generating the base undo entry)
-        board.movePiece(from, to);
+        boardImpl.movePiece(from, to);
 
         // Apply the side effects
         if (isCastling) {
@@ -766,25 +763,25 @@ public final class Controller {
         }
         if (isEnPassant) {
             final Position capturedPawnPos = new Position(to.x(), from.y());
-            board.removePiece(capturedPawnPos);
+            boardImpl.removePiece(capturedPawnPos);
         }
         if (isPromotion) {
             final char promotedFenChar = GameRules.sanitizePromotionChoice(promotionChoice, movingColor);
-            board.putPiece(to, PieceFactory.createPiece(promotedFenChar));
+            boardImpl.putPiece(to, PieceFactory.createPiece(promotedFenChar));
         }
 
         // Timer gestion, we give the increment to the current color
-        final boolean wasWhiteTurn = board.getActiveColor() == 'w';
+        final boolean wasWhiteTurn = boardImpl.getActiveColor() == 'w';
         chessClock.addIncrement(wasWhiteTurn);
 
         // Update the chessboard metadata.
-        board.setActiveColor(movingColor == PieceColor.WHITE ? 'b' : 'w');
-        board.setCastlingRights(updateCastlingRights(castlingRightsBefore, from, to, movingColor, isCastling));
-        board.setEnPassantTarget(isPawnDoubleStep
+        boardImpl.setActiveColor(movingColor == PieceColor.WHITE ? 'b' : 'w');
+        boardImpl.setCastlingRights(updateCastlingRights(castlingRightsBefore, from, to, movingColor, isCastling));
+        boardImpl.setEnPassantTarget(isPawnDoubleStep
                 ? GameRules.positionToAlgebraic(new Position(from.x(), (from.y() + to.y()) / 2))
                 : "-");
-        board.setHalfmoveClock(isPawn || isCapture ? 0 : halfmoveClockBefore + 1);
-        board.setFullmoveNumber(movingColor == PieceColor.BLACK ? fullmoveNumberBefore + 1 : fullmoveNumberBefore);
+        boardImpl.setHalfmoveClock(isPawn || isCapture ? 0 : halfmoveClockBefore + 1);
+        boardImpl.setFullmoveNumber(movingColor == PieceColor.BLACK ? fullmoveNumberBefore + 1 : fullmoveNumberBefore);
 
         return MoveOutcome.MOVE_PLAYED;
     }
@@ -799,9 +796,9 @@ public final class Controller {
     }
 
     private void relocateRook(final Position from, final Position to) {
-        board.getPieceAt(from).ifPresent((final Piece rook) -> {
-            board.removePiece(from);
-            board.putPiece(to, rook);
+        boardImpl.getPieceAt(from).ifPresent((final Piece rook) -> {
+            boardImpl.removePiece(from);
+            boardImpl.putPiece(to, rook);
         });
     }
 
@@ -896,7 +893,7 @@ public final class Controller {
         }
         final boolean isWhite = movingColor == PieceColor.WHITE;
         final AuraEngine.Move humanMove = new AuraEngine.Move(from, to);
-        final int precision = engine.calculatePrecision(board, humanMove, isWhite);
+        final int precision = engine.calculatePrecision(boardImpl, humanMove, isWhite);
         trackedMoveLog.push(true);
         precisionHistory.add(precision);
         if (view != null) {

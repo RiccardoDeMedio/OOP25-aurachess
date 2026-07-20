@@ -2,7 +2,7 @@ package scacchi.model.pieces;
 
 import java.util.Set;
 import scacchi.model.board.Position;
-import scacchi.model.board.ReadOnlyBoard;
+import scacchi.model.board.Board;
 
 /**
  * Interface, representing a generic chess piece.
@@ -45,5 +45,5 @@ public interface Piece {
      * @param board the read-only state of the board
      * @return a Set of valid destination positions
      */
-    Set<Position> getValidMoves(Position currentPosition, ReadOnlyBoard board);
+    Set<Position> getValidMoves(Position currentPosition, Board board);
 }
