@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import scacchi.model.board.Position;
-import scacchi.model.board.ReadOnlyBoard;
+import scacchi.model.board.Board;
 import scacchi.model.pieces.Piece;
 import scacchi.model.pieces.PieceColor;
 
@@ -66,7 +66,7 @@ public final class GameRules {
      * @param board the current board
      * @return the en passant target position
      */
-    public static Optional<Position> getEnPassantTarget(final ReadOnlyBoard board) {
+    public static Optional<Position> getEnPassantTarget(final Board board) {
         return algebraicToPosition(board.getEnPassantTarget());
     }
  
@@ -107,7 +107,7 @@ public final class GameRules {
      * @param board the current board
      * @return the king's position
      */
-    public static Optional<Position> findKing(final PieceColor color, final ReadOnlyBoard board) {
+    public static Optional<Position> findKing(final PieceColor color, final Board board) {
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position pos = new Position(x, y);
@@ -130,7 +130,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if the cell is attacked
      */
-    public static boolean isSquareAttacked(final Position target, final PieceColor byColor, final ReadOnlyBoard board) {
+    public static boolean isSquareAttacked(final Position target, final PieceColor byColor, final Board board) {
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position from = new Position(x, y);
@@ -156,7 +156,7 @@ public final class GameRules {
      * @return true if it attacks
      */
     private static boolean attacksSquare(final Piece piece, final Position from,
-            final Position target, final ReadOnlyBoard board) {
+            final Position target, final Board board) {
         final char type = Character.toLowerCase(piece.getFenChar());
         return switch (type) {
             case 'p' -> pawnAttacks(piece.getColor(), from, target);
@@ -218,7 +218,7 @@ public final class GameRules {
      * @return true if the cell is attacked
      */
     private static boolean slidingAttacks(final Position from, final Position target,
-            final ReadOnlyBoard board, final int[][] directions) {
+                                          final Board board, final int[][] directions) {
         for (final int[] dir : directions) {
             int x = from.x();
             int y = from.y();
@@ -247,7 +247,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if the king is in check
      */
-    public static boolean isKingInCheck(final PieceColor color, final ReadOnlyBoard board) {
+    public static boolean isKingInCheck(final PieceColor color, final Board board) {
         final Optional<Position> king = findKing(color, board);
         return king.isPresent() && isSquareAttacked(king.get(), getOppositeColor(color), board);
     }
@@ -262,12 +262,12 @@ public final class GameRules {
      * @return true if the move is safe (the king is not in check after the move)
      */
     public static boolean isMoveSafeForKing(final Position from, final Position to,
-            final Position extraCapture, final ReadOnlyBoard board) {
+            final Position extraCapture, final Board board) {
         final Optional<Piece> movingPiece = board.getPieceAt(from);
         if (movingPiece.isEmpty()) {
             return true;
         }
-        final ReadOnlyBoard simulated = new SimulatedBoard(board, from, to, extraCapture);
+        final Board simulated = new SimulatedBoard(board, from, to, extraCapture);
         return !isKingInCheck(movingPiece.get().getColor(), simulated);
     }
  
@@ -278,7 +278,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if it can castle
      */
-    public static boolean canCastleKingside(final PieceColor color, final ReadOnlyBoard board) {
+    public static boolean canCastleKingside(final PieceColor color, final Board board) {
         if (board.getCastlingRights().indexOf(color == PieceColor.WHITE ? 'K' : 'k') < 0) {
             return false;
         }
@@ -301,7 +301,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if it can castle
      */
-    public static boolean canCastleQueenside(final PieceColor color, final ReadOnlyBoard board) {
+    public static boolean canCastleQueenside(final PieceColor color, final Board board) {
         if (board.getCastlingRights().indexOf(color == PieceColor.WHITE ? 'Q' : 'q') < 0) {
             return false;
         }
@@ -326,7 +326,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if present
      */
-    private static boolean isRookInPlace(final Position rookPos, final PieceColor color, final ReadOnlyBoard board) {
+    private static boolean isRookInPlace(final Position rookPos, final PieceColor color, final Board board) {
         return board.getPieceAt(rookPos)
                 .filter(p -> Character.toLowerCase(p.getFenChar()) == 'r' && p.getColor() == color)
                 .isPresent();
@@ -340,7 +340,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if it is en passant
      */
-    public static boolean isEnPassantCapture(final Position from, final Position to, final ReadOnlyBoard board) {
+    public static boolean isEnPassantCapture(final Position from, final Position to, final Board board) {
         final Optional<Piece> piece = board.getPieceAt(from);
         if (piece.isEmpty() || Character.toLowerCase(piece.get().getFenChar()) != 'p') {
             return false;
@@ -400,7 +400,7 @@ public final class GameRules {
      * @param board the current board
      * @return the available legal steps
      */
-    public static Set<Position> getLegalMoves(final Position from, final ReadOnlyBoard board) {
+    public static Set<Position> getLegalMoves(final Position from, final Board board) {
         final Set<Position> legalMoves = new HashSet<>();
         final Optional<Piece> pieceOpt = board.getPieceAt(from);
         if (pieceOpt.isEmpty()) {
@@ -448,7 +448,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if the player has no legal moves available
      */
-    public static boolean hasNoLegalMove(final PieceColor color, final ReadOnlyBoard board) {
+    public static boolean hasNoLegalMove(final PieceColor color, final Board board) {
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
             for (int y = 0; y < Position.BOARD_SIZE; y++) {
                 final Position pos = new Position(x, y);
@@ -469,7 +469,7 @@ public final class GameRules {
      * @param board the current board
      * @return true in the event of checkmate
      */
-    public static boolean isCheckmate(final PieceColor color, final ReadOnlyBoard board) {
+    public static boolean isCheckmate(final PieceColor color, final Board board) {
         return isKingInCheck(color, board) && hasNoLegalMove(color, board);
     }
  
@@ -480,7 +480,7 @@ public final class GameRules {
      * @param board the current board
      * @return true in case of deadlock
      */
-    public static boolean isStalemate(final PieceColor color, final ReadOnlyBoard board) {
+    public static boolean isStalemate(final PieceColor color, final Board board) {
         return !isKingInCheck(color, board) && hasNoLegalMove(color, board);
     }
  
@@ -490,7 +490,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if limits are exceeded
      */
-    public static boolean isFiftyMoveRule(final ReadOnlyBoard board) {
+    public static boolean isFiftyMoveRule(final Board board) {
         return board.getHalfmoveClock() >= FIFTY_MOVE_HALFMOVE_LIMIT;
     }
  
@@ -501,7 +501,7 @@ public final class GameRules {
      * @param board the current board
      * @return true in the event of a threefold repetition
      */
-    public static boolean isThreefoldRepetition(final ReadOnlyBoard board) {
+    public static boolean isThreefoldRepetition(final Board board) {
         final List<String> history = board.getChronologicalHistory();
         final Map<String, Integer> occurrences = new HashMap<>();
         for (final String fen : history) {
@@ -536,7 +536,7 @@ public final class GameRules {
      * @param board the current board
      * @return true if the material is insufficient
      */
-    public static boolean isInsufficientMaterial(final ReadOnlyBoard board) {
+    public static boolean isInsufficientMaterial(final Board board) {
         int whiteMinorPieces = 0;
         int blackMinorPieces = 0;
         for (int x = 0; x < Position.BOARD_SIZE; x++) {
@@ -572,8 +572,8 @@ public final class GameRules {
      * @param to the destination position
      * @param removed an optional position of a piece to be removed (es. en passant capture)
      */
-    private record SimulatedBoard(ReadOnlyBoard original, Position from, Position to,
-                                      Position removed) implements ReadOnlyBoard {
+    private record SimulatedBoard(Board original, Position from, Position to,
+                                  Position removed) implements Board {
 
         @Override
         public Optional<Piece> getPieceAt(final Position pos) {

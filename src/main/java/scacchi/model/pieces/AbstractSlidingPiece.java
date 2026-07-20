@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import scacchi.model.board.Position;
-import scacchi.model.board.ReadOnlyBoard;
+import scacchi.model.board.Board;
 
 /**
  * Abstract class representing pieces that slide across the board
@@ -52,7 +52,7 @@ public abstract class AbstractSlidingPiece implements Piece {
     protected abstract int[][] getDirections();
 
     @Override
-    public final Set<Position> getValidMoves(final Position currentPosition, final ReadOnlyBoard board) {
+    public final Set<Position> getValidMoves(final Position currentPosition, final Board board) {
         final Set<Position> moves = new HashSet<>();
 
         // Iterate through all the specific directions of the piece

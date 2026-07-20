@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import scacchi.model.board.Position;
-import scacchi.model.board.ReadOnlyBoard;
+import scacchi.model.board.Board;
 
 /**
  * Represents a piece that moves by making discrete steps (King, Knight).
@@ -51,7 +51,7 @@ public abstract class AbstractSteppingPiece implements Piece {
     protected abstract int[][] getDirections();
 
     @Override
-    public final Set<Position> getValidMoves(final Position currentPosition, final ReadOnlyBoard board) {
+    public final Set<Position> getValidMoves(final Position currentPosition, final Board board) {
         final Set<Position> validMoves = new HashSet<>();
 
         for (final int[] dir : getDirections()) {

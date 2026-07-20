@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import scacchi.model.ai.AuraEngine.Move;
-import scacchi.model.board.Board;
+import scacchi.model.board.BoardImpl;
 import scacchi.model.board.Position;
 import scacchi.model.pieces.PieceColor;
 
@@ -38,19 +38,19 @@ class AuraEngineTest {
         engine = new AuraEngine(DEFAULT_DEPTH);
     }
 
-    private Board boardFromFEN(final String fen) {
-        final Board board = new Board();
-        board.loadFromFEN(fen);
-        return board;
+    private BoardImpl boardFromFEN(final String fen) {
+        final BoardImpl boardImpl = new BoardImpl();
+        boardImpl.loadFromFEN(fen);
+        return boardImpl;
     }
 
     @Test
     void deeperSearchShouldNotTakeUnreasonablyLong() {
-        final Board board = boardFromFEN(STARTING_FEN);
+        final BoardImpl boardImpl = boardFromFEN(STARTING_FEN);
         final AuraEngine deepEngine = new AuraEngine(DEFAULT_DEPTH);
 
         final long start = System.currentTimeMillis();
-        final Move best = deepEngine.findBestMove(board, true);
+        final Move best = deepEngine.findBestMove(boardImpl, true);
         final long elapsedMs = System.currentTimeMillis() - start;
 
         LOGGER.info("Tempo di ricerca a profondità 5: " + elapsedMs + " ms");
@@ -63,8 +63,8 @@ class AuraEngineTest {
 
     @Test
     void startingPositionShouldBeRoughlyBalanced() {
-        final Board board = boardFromFEN(STARTING_FEN);
-        final int score = TestSupport.evaluateBoard(engine, board);
+        final BoardImpl boardImpl = boardFromFEN(STARTING_FEN);
+        final int score = TestSupport.evaluateBoard(engine, boardImpl);
 
         LOGGER.info(LOG_PUNTEGGIO + score);
 
@@ -73,8 +73,8 @@ class AuraEngineTest {
 
     @Test
     void extraQueenShouldGiveLargeAdvantage() {
-        final Board board = boardFromFEN("4k3/8/8/8/8/8/8/3QK3 w - - 0 1");
-        final int score = TestSupport.evaluateBoard(engine, board);
+        final BoardImpl boardImpl = boardFromFEN("4k3/8/8/8/8/8/8/3QK3 w - - 0 1");
+        final int score = TestSupport.evaluateBoard(engine, boardImpl);
 
         LOGGER.info(LOG_PUNTEGGIO + score);
 
@@ -83,13 +83,13 @@ class AuraEngineTest {
 
     @Test
     void shouldFindMateInOne() {
-        final Board board = boardFromFEN("6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1");
+        final BoardImpl boardImpl = boardFromFEN("6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1");
         final AuraEngine deepEngine = new AuraEngine(TACTICAL_DEPTH);
-        final Move best = deepEngine.findBestMove(board, true);
+        final Move best = deepEngine.findBestMove(boardImpl, true);
 
         assertNotNull(best, "Dovrebbe esistere una mossa se il bianco non è già in stallo/matto");
 
-        final Board after = new Board(board);
+        final BoardImpl after = new BoardImpl(boardImpl);
         after.movePiece(best.startPosition(), best.finalPosition());
         assertTrue(scacchi.model.gamerules.GameRules.isCheckmate(PieceColor.BLACK, after),
                 "La mossa trovata dovrebbe dare scacco matto al nero");
@@ -97,8 +97,8 @@ class AuraEngineTest {
 
     @Test
     void findBestMoveShouldHandleNoLegalMovesGracefully() {
-        final Board staleBoard = boardFromFEN("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1");
-        final Move best = engine.findBestMove(staleBoard, false);
+        final BoardImpl staleBoardImpl = boardFromFEN("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1");
+        final Move best = engine.findBestMove(staleBoardImpl, false);
 
         assertNull(best, "In assenza di mosse legali, findBestMove dovrebbe restituire null");
     }
@@ -107,11 +107,11 @@ class AuraEngineTest {
     void blunderShouldHaveLowPrecision() {
         // FEN: Re bianco in e1, Regina bianca in d4. Re nero in e8, pedone nero in e6.
         final String queenHangingFEN = "4k3/8/4p3/8/3Q4/8/8/4K3 w - - 0 1";
-        final Board board = boardFromFEN(queenHangingFEN);
+        final BoardImpl boardImpl = boardFromFEN(queenHangingFEN);
 
         final Move blunder = new Move(new Position(3, 3), new Position(3, 4));
 
-        final int precision = engine.calculatePrecision(board, blunder, true);
+        final int precision = engine.calculatePrecision(boardImpl, blunder, true);
 
         LOGGER.info(LOG_PUNTEGGIO + precision);
 
@@ -120,16 +120,16 @@ class AuraEngineTest {
 
     @Test
     void averagePrecisionShouldReflectMultipleMoves() {
-        final Board board = boardFromFEN(STARTING_FEN);
+        final BoardImpl boardImpl = boardFromFEN(STARTING_FEN);
 
         final Move m1 = new Move(new Position(4, 1), new Position(4, 3));
-        engine.calculatePrecision(board, m1, true);
+        engine.calculatePrecision(boardImpl, m1, true);
 
-        final Board board2 = new Board(board);
-        board2.movePiece(m1.startPosition(), m1.finalPosition());
+        final BoardImpl boardImpl2 = new BoardImpl(boardImpl);
+        boardImpl2.movePiece(m1.startPosition(), m1.finalPosition());
 
         final Move m2 = new Move(new Position(4, BLACK_PAWN_START_ROW), new Position(4, 4));
-        engine.calculatePrecision(board2, m2, false);
+        engine.calculatePrecision(boardImpl2, m2, false);
 
         final int avg = engine.averagePrecision(true);
 
@@ -140,9 +140,9 @@ class AuraEngineTest {
 
     @Test
     void shouldChooseCastlingWhenBest() {
-        final Board board = boardFromFEN("4k3/8/8/8/8/8/8/4K2R w K - 0 1");
+        final BoardImpl boardImpl = boardFromFEN("4k3/8/8/8/8/8/8/4K2R w K - 0 1");
         final AuraEngine deepEngine = new AuraEngine(TACTICAL_DEPTH);
-        final Move best = deepEngine.findBestMove(board, true);
+        final Move best = deepEngine.findBestMove(boardImpl, true);
 
         assertNotNull(best, "Dovrebbe esistere la mossa");
 
@@ -158,7 +158,7 @@ class AuraEngineTest {
     @Test
     void shouldTrackAndUndoMovesHistory() {
         // Usa una posizione di partenza o una FEN semplice
-        final Board board = boardFromFEN(STARTING_FEN);
+        final BoardImpl boardImpl = boardFromFEN(STARTING_FEN);
 
         // Scegliamo una mossa valida (es. Pedone e2-e4)
         final Move playerMove = new Move(new Position(4, 1), new Position(4, 3));
@@ -168,7 +168,7 @@ class AuraEngineTest {
         assertTrue(engine.getAllBestMoves().isEmpty(), "Lo storico delle best moves deve essere vuoto inizialmente");
 
         // Calcolando la precisione, l'engine dovrebbe popolare le liste tramite calculateLoss
-        engine.calculatePrecision(board, playerMove, true);
+        engine.calculatePrecision(boardImpl, playerMove, true);
 
         // 1. Verifica che la mossa del giocatore sia stata salvata
         assertEquals(1, engine.getAllPlayerMoves().size(), "Deve esserci esattamente 1 mossa del giocatore registrata");
@@ -188,9 +188,9 @@ class AuraEngineTest {
 
     @Test
     void shouldChoosePromotionWhenBest() {
-        final Board board = boardFromFEN("5r2/6P1/8/8/8/8/8/4K1k1 w - - 0 1");
+        final BoardImpl boardImpl = boardFromFEN("5r2/6P1/8/8/8/8/8/4K1k1 w - - 0 1");
         final AuraEngine deepEngine = new AuraEngine(TACTICAL_DEPTH);
-        final Move best = deepEngine.findBestMove(board, true);
+        final Move best = deepEngine.findBestMove(boardImpl, true);
 
         assertNotNull(best, "Dovrebbe esistere una mossa");
 
@@ -205,9 +205,9 @@ class AuraEngineTest {
 
     @Test
     void shouldChooseEnPassantWhenBest() {
-        final Board board = boardFromFEN("k7/8/8/4Pp2/8/8/8/4K3 w - f6 0 1");
+        final BoardImpl boardImpl = boardFromFEN("k7/8/8/4Pp2/8/8/8/4K3 w - f6 0 1");
         final AuraEngine deepEngine = new AuraEngine(TACTICAL_DEPTH);
-        final Move best = deepEngine.findBestMove(board, true);
+        final Move best = deepEngine.findBestMove(boardImpl, true);
 
         assertNotNull(best, "Dovrebbe esistere una mossa");
 
@@ -226,12 +226,12 @@ class AuraEngineTest {
         }
 
         @SuppressWarnings("PMD.AvoidAccessibilityAlteration")
-        static int evaluateBoard(final AuraEngine engine, final Board board) {
+        static int evaluateBoard(final AuraEngine engine, final BoardImpl boardImpl) {
             try {
-                final Method evalMethod = AuraEngine.class.getDeclaredMethod("evaluateBoard", Board.class, List.class);
+                final Method evalMethod = AuraEngine.class.getDeclaredMethod("evaluateBoard", BoardImpl.class, List.class);
                 evalMethod.setAccessible(true);
 
-                return (int) evalMethod.invoke(engine, board, engine.getAllPieces(board));
+                return (int) evalMethod.invoke(engine, boardImpl, engine.getAllPieces(boardImpl));
 
             } catch (final ReflectiveOperationException e) {
                 throw new IllegalStateException("Impossibile invocare evaluateBoard via reflection", e);

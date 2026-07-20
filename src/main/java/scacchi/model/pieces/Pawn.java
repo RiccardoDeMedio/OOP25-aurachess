@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import scacchi.model.board.Position;
-import scacchi.model.board.ReadOnlyBoard;
+import scacchi.model.board.Board;
 
 /**
  * Represents the piece.
@@ -49,7 +49,7 @@ public final class Pawn implements Piece {
     }
 
     @Override
-    public Set<Position> getValidMoves(final Position currentPosition, final ReadOnlyBoard board) {
+    public Set<Position> getValidMoves(final Position currentPosition, final Board board) {
         final Set<Position> validMoves = new HashSet<>();
         final int direction = (this.color == PieceColor.WHITE) ? 1 : -1; // 1 for white (up), -1 for black (down)
         final int startRow = (this.color == PieceColor.WHITE) ? WHITE_START_ROW : BLACK_START_ROW; // Starting row for pawns

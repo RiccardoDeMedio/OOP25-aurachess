@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import scacchi.model.board.Board;
+import scacchi.model.board.BoardImpl;
 import scacchi.model.board.Position;
 
 /**
@@ -19,11 +19,11 @@ class PieceMovementTest {
     private static final int POS_5 = 5;
     private static final int POS_6 = 6;
 
-    private Board board;
+    private BoardImpl boardImpl;
 
     @BeforeEach
     void setUp() {
-        board = new Board();
+        boardImpl = new BoardImpl();
     }
 
     /**
@@ -44,11 +44,11 @@ class PieceMovementTest {
     @Test
     void testRookMovement() {
         // Rook on d4, blocked by a friendly piece on d5, captures an enemy piece on c4.
-        board.loadFromFEN("8/8/8/3P4/2pR4/8/8/8 w - - 0 1");
+        boardImpl.loadFromFEN("8/8/8/3P4/2pR4/8/8/8 w - - 0 1");
         final Position pos = new Position(3, 3);
-        final Piece rook = board.getPieceAt(pos)
+        final Piece rook = boardImpl.getPieceAt(pos)
                 .orElseThrow(() -> new IllegalStateException(PIECE_NOT_FOUND + pos));
-        final Set<Position> moves = rook.getValidMoves(pos, board);
+        final Set<Position> moves = rook.getValidMoves(pos, boardImpl);
 
         assertInsideBoard(moves);
         assertFalse(moves.contains(new Position(3, 4)), "Non deve mangiare l'alleato sopra");
@@ -61,11 +61,11 @@ class PieceMovementTest {
      */
     @Test
     void testBishopMovement() {
-        board.loadFromFEN("8/8/8/4P3/3B4/2p5/8/8 w - - 0 1");
+        boardImpl.loadFromFEN("8/8/8/4P3/3B4/2p5/8/8 w - - 0 1");
         final Position pos = new Position(3, 3);
-        final Piece bishop = board.getPieceAt(pos)
+        final Piece bishop = boardImpl.getPieceAt(pos)
                 .orElseThrow(() -> new IllegalStateException(PIECE_NOT_FOUND + pos));
-        final Set<Position> moves = bishop.getValidMoves(pos, board);
+        final Set<Position> moves = bishop.getValidMoves(pos, boardImpl);
 
         assertInsideBoard(moves);
         assertFalse(moves.contains(new Position(4, 4)), "Non deve mangiare l'alleato in diagonale alto-destra");
@@ -77,11 +77,11 @@ class PieceMovementTest {
      */
     @Test
     void testQueenMovement() {
-        board.loadFromFEN("8/6p1/8/3P4/3Q4/8/8/8 w - - 0 1");
+        boardImpl.loadFromFEN("8/6p1/8/3P4/3Q4/8/8/8 w - - 0 1");
         final Position pos = new Position(3, 3);
-        final Piece queen = board.getPieceAt(pos)
+        final Piece queen = boardImpl.getPieceAt(pos)
                 .orElseThrow(() -> new IllegalStateException(PIECE_NOT_FOUND + pos));
-        final Set<Position> moves = queen.getValidMoves(pos, board);
+        final Set<Position> moves = queen.getValidMoves(pos, boardImpl);
 
         assertInsideBoard(moves);
         assertFalse(moves.contains(new Position(3, 4)), "Non deve mangiare l'alleato sopra");
@@ -93,11 +93,11 @@ class PieceMovementTest {
      */
     @Test
     void testKnightMovement() {
-        board.loadFromFEN("8/8/4P3/8/3N4/8/2p5/8 w - - 0 1");
+        boardImpl.loadFromFEN("8/8/4P3/8/3N4/8/2p5/8 w - - 0 1");
         final Position pos = new Position(3, 3);
-        final Piece knight = board.getPieceAt(pos)
+        final Piece knight = boardImpl.getPieceAt(pos)
                 .orElseThrow(() -> new IllegalStateException(PIECE_NOT_FOUND + pos));
-        final Set<Position> moves = knight.getValidMoves(pos, board);
+        final Set<Position> moves = knight.getValidMoves(pos, boardImpl);
 
         assertInsideBoard(moves);
         assertFalse(moves.contains(new Position(4, POS_5)), "Non deve saltare sull'alleato in e6");
@@ -109,11 +109,11 @@ class PieceMovementTest {
      */
     @Test
     void testKnightInCorner() {
-        board.loadFromFEN("8/8/8/8/8/8/8/N7 w - - 0 1");
+        boardImpl.loadFromFEN("8/8/8/8/8/8/8/N7 w - - 0 1");
         final Position pos = new Position(0, 0);
-        final Piece knight = board.getPieceAt(pos)
+        final Piece knight = boardImpl.getPieceAt(pos)
                 .orElseThrow(() -> new IllegalStateException(PIECE_NOT_FOUND + pos));
-        final Set<Position> moves = knight.getValidMoves(pos, board);
+        final Set<Position> moves = knight.getValidMoves(pos, boardImpl);
 
         assertInsideBoard(moves);
         assertEquals(2, moves.size(), "Il Cavallo in angolo a1 deve avere esattamente 2 mosse");
@@ -124,11 +124,11 @@ class PieceMovementTest {
      */
     @Test
     void testKingMovement() {
-        board.loadFromFEN("8/8/8/3P4/3Kq3/8/8/8 w - - 0 1");
+        boardImpl.loadFromFEN("8/8/8/3P4/3Kq3/8/8/8 w - - 0 1");
         final Position pos = new Position(3, 3);
-        final Piece king = board.getPieceAt(pos)
+        final Piece king = boardImpl.getPieceAt(pos)
                 .orElseThrow(() -> new IllegalStateException(PIECE_NOT_FOUND + pos));
-        final Set<Position> moves = king.getValidMoves(pos, board);
+        final Set<Position> moves = king.getValidMoves(pos, boardImpl);
 
         assertInsideBoard(moves);
         assertFalse(moves.contains(new Position(3, 4)), "Non deve spostarsi sull'alleato in d5");
@@ -141,11 +141,11 @@ class PieceMovementTest {
      */
     @Test
     void testKingInCorner() {
-        board.loadFromFEN("8/8/8/8/8/8/8/K7 w - - 0 1");
+        boardImpl.loadFromFEN("8/8/8/8/8/8/8/K7 w - - 0 1");
         final Position pos = new Position(0, 0);
-        final Piece king = board.getPieceAt(pos)
+        final Piece king = boardImpl.getPieceAt(pos)
                 .orElseThrow(() -> new IllegalStateException(PIECE_NOT_FOUND + pos));
-        final Set<Position> moves = king.getValidMoves(pos, board);
+        final Set<Position> moves = king.getValidMoves(pos, boardImpl);
 
         assertInsideBoard(moves);
         assertEquals(3, moves.size(), "Il Re in angolo a1 deve avere esattamente 3 mosse");
@@ -156,11 +156,11 @@ class PieceMovementTest {
      */
     @Test
     void testWhitePawnMovement() {
-        board.loadFromFEN("8/8/8/8/8/4p3/3P4/8 w - - 0 1");
+        boardImpl.loadFromFEN("8/8/8/8/8/4p3/3P4/8 w - - 0 1");
         final Position pos = new Position(3, 1);
-        final Piece pawn = board.getPieceAt(pos)
+        final Piece pawn = boardImpl.getPieceAt(pos)
                 .orElseThrow(() -> new IllegalStateException(PIECE_NOT_FOUND + pos));
-        final Set<Position> moves = pawn.getValidMoves(pos, board);
+        final Set<Position> moves = pawn.getValidMoves(pos, boardImpl);
 
         assertInsideBoard(moves);
         assertTrue(moves.contains(new Position(3, 2)), "Il pedone bianco può muoversi avanti di uno");
@@ -175,11 +175,11 @@ class PieceMovementTest {
     @Test
     void testPawnDoubleStepBlockedSpecific() {
         // White pawn on d2 (3,1). Square d3 is empty, but square d4 is occupied.
-        board.loadFromFEN("8/8/8/8/3p4/8/3P4/8 w - - 0 1");
+        boardImpl.loadFromFEN("8/8/8/8/3p4/8/3P4/8 w - - 0 1");
         final Position pos = new Position(3, 1);
-        final Piece pawn = board.getPieceAt(pos)
+        final Piece pawn = boardImpl.getPieceAt(pos)
                 .orElseThrow(() -> new IllegalStateException(PIECE_NOT_FOUND + pos));
-        final Set<Position> moves = pawn.getValidMoves(pos, board);
+        final Set<Position> moves = pawn.getValidMoves(pos, boardImpl);
 
         assertInsideBoard(moves);
         assertTrue(moves.contains(new Position(3, 2)), "Il pedone deve poter fare il passo singolo in d3");
@@ -192,11 +192,11 @@ class PieceMovementTest {
      */
     @Test
     void testBlackPawnMovement() {
-        board.loadFromFEN("8/3p4/2Pp4/8/8/8/8/8 b - - 0 1");
+        boardImpl.loadFromFEN("8/3p4/2Pp4/8/8/8/8/8 b - - 0 1");
         final Position pos = new Position(3, 6);
-        final Piece pawn = board.getPieceAt(pos)
+        final Piece pawn = boardImpl.getPieceAt(pos)
                 .orElseThrow(() -> new IllegalStateException(PIECE_NOT_FOUND + pos));
-        final Set<Position> moves = pawn.getValidMoves(pos, board);
+        final Set<Position> moves = pawn.getValidMoves(pos, boardImpl);
 
         assertInsideBoard(moves);
         assertFalse(moves.contains(new Position(3, POS_5)), "Pedone nero NON può muoversi avanti se bloccato");

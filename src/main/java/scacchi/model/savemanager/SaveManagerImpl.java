@@ -1,5 +1,7 @@
-package scacchi.model.board;
+package scacchi.model.savemanager;
 
+import scacchi.model.board.Board;
+import scacchi.model.board.BoardImpl;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,7 +12,7 @@ import java.util.regex.Pattern;
 /**
  * Managing saving and loading game files.
  */
-public class SaveManager {
+public final class SaveManagerImpl implements SaveManager {
 
     // Name of the hidden folder that will contain all the game saves
     private static final String APP_DIRECTORY = ".aurascacchi";
@@ -29,12 +31,7 @@ public class SaveManager {
         return Paths.get(userHome, APP_DIRECTORY, SAVES_SUBDIR);
     }
 
-    /**
-     * Takes the current board, extracts the FEN history and saves it to a .fen file.
-     *
-     * @param fileName the name that the game we're trying to save will have
-     * @param board the board that we want to save
-     */
+    @Override
     public void saveGame(final String fileName, final Board board) throws IOException {
         final Path dirPath = getSavesDirectory();
 
@@ -54,14 +51,8 @@ public class SaveManager {
         Files.write(filePath, historyList);
     }
 
-    /**
-     * Reads a .fen file line by line and reconstructs the entire history in the board.
-     *
-     * @param fileName Name of the game file to load
-     * @param board Board where the game is loaded
-     * @throws IOException If the save game you are looking for is not found
-     */
-    public void loadGame(final String fileName, final Board board) throws IOException {
+    @Override
+    public void loadGame(final String fileName, final BoardImpl boardImpl) throws IOException {
         final Path dirPath = getSavesDirectory();
         final String sanitizeFileName = sanitizeFileName(fileName);
         final Path filePath = dirPath.resolve(sanitizeFileName + FEN_EXT);
@@ -74,14 +65,10 @@ public class SaveManager {
         final List<String> lines = Files.readAllLines(filePath);
 
         // We pass the lines to the board to make the stack and restore the present board
-        board.loadFullGame(lines);
+        boardImpl.loadFullGame(lines);
     }
 
-    /**
-     * Retrieves the names of all available save files (without the extension).
-     *
-     * @return a list of save names, empty if there are none.
-     */
+    @Override
     public List<String> getAvailableSaves() {
         final Path dirPath = getSavesDirectory();
 
@@ -101,6 +88,30 @@ public class SaveManager {
         }
     }
 
+    @Override
+    public void deleteAllSaves() throws IOException {
+        final Path dirPath = getSavesDirectory();
+
+        if (!Files.exists(dirPath)) {
+            return;
+        }
+
+        try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(dirPath, "*" + FEN_EXT)) {
+            for (final Path entry : stream) {
+                Files.delete(entry);
+            }
+        }
+    }
+
+    @Override
+    public void deleteSave(final String fileName) throws IOException {
+        final Path dirPath = getSavesDirectory();
+        final String sanitizeFileName = sanitizeFileName(fileName);
+        final Path filePath = dirPath.resolve(sanitizeFileName + FEN_EXT);
+
+        Files.deleteIfExists(filePath);
+    }
+
     /**
      * We take the save name proposed by the user and strip out forbidden characters; otherwise,
      * it could create or overwrite .fen files anywhere on the computer, cluttering the system.
@@ -118,36 +129,4 @@ public class SaveManager {
         return sanitized;
     }
 
-    /**
-     * Delete all save files (.fen) in the folder.
-     *
-     * @throws IOException if an error occurs while deleting a file
-     */
-    public void deleteAllSaves() throws IOException {
-        final Path dirPath = getSavesDirectory();
-
-        if (!Files.exists(dirPath)) {
-            return;
-        }
-
-        try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(dirPath, "*" + FEN_EXT)) {
-            for (final Path entry : stream) {
-                Files.delete(entry);
-            }
-        }
-    }
-
-    /**
-     * Elimina un singolo file di salvataggio.
-     *
-     * @param fileName il nome del salvataggio da eliminare (senza estensione)
-     * @throws IOException se si verifica un errore durante l'eliminazione
-     */
-    public void deleteSave(final String fileName) throws IOException {
-        final Path dirPath = getSavesDirectory();
-        final String sanitizeFileName = sanitizeFileName(fileName);
-        final Path filePath = dirPath.resolve(sanitizeFileName + FEN_EXT);
-
-        Files.deleteIfExists(filePath);
-    }
 }
