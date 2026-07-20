@@ -137,11 +137,10 @@ public class AuraEngine {
      */
     protected List<PlacedPiece> getAllPieces(final BoardImpl boardImpl) {
         final List<PlacedPiece> allPieces = new ArrayList<>();
-        final List<Position> allPosition = ALL_POSITIONS;
-        for (final Position position : allPosition) {
-            boardImpl.getPieceAt(position).ifPresent(piece -> {
-                allPieces.add(new PlacedPiece(piece, position));
-            });
+        for (final Position position : ALL_POSITIONS) {
+            boardImpl.getPieceAt(position).ifPresent(
+                piece -> allPieces.add(new PlacedPiece(piece, position))
+            );
         }
         return allPieces;
     }
@@ -221,6 +220,7 @@ public class AuraEngine {
             }
             return 0;
         }
+        final boolean nextTurn = !isMaximizingPlayer;
         if (isMaximizingPlayer) {
             int maxEval = Integer.MIN_VALUE;
             int currentAlfa = alfa;
@@ -231,7 +231,7 @@ public class AuraEngine {
                         depth - 1,
                         currentAlfa,
                         beta,
-                        !isMaximizingPlayer
+                        nextTurn
                 );
                 undoMove(boardImpl, toUndo);
                 maxEval = Math.max(eval, maxEval);
@@ -251,7 +251,7 @@ public class AuraEngine {
                         depth - 1,
                         alfa,
                         currentBeta,
-                        !isMaximizingPlayer
+                        nextTurn
                 );
                 undoMove(boardImpl, toUndo);
                 minEval = Math.min(eval, minEval);
