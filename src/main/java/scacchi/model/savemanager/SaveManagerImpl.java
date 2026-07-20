@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * Managing saving and loading game files.
@@ -106,7 +107,7 @@ public final class SaveManagerImpl implements SaveManager {
             return java.util.Collections.emptyList();
         }
 
-        try (java.util.stream.Stream<Path> paths = Files.list(dirPath)) {
+        try (Stream<Path> paths = Files.list(dirPath)) {
             return paths
                     .map(Path::toFile)
                     .map(java.io.File::getName)
