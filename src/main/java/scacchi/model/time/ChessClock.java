@@ -48,6 +48,35 @@ public class ChessClock {
     }
 
     /**
+     * Sets the remaining times for both players.
+     *
+     * @param newWhiteTimeMs White's remaining time in milliseconds
+     * @param newBlackTimeMs Black's remaining time in milliseconds
+     */
+    public void setRemainingTimes(final long newWhiteTimeMs, final long newBlackTimeMs) {
+        this.whiteTimeMs = newWhiteTimeMs;
+        this.blackTimeMs = newBlackTimeMs;
+    }
+
+    /**
+     * Gets White's remaining time in milliseconds.
+     *
+     * @return White's remaining time in milliseconds
+     */
+    public long getWhiteTimeMs() {
+        return this.whiteTimeMs;
+    }
+
+    /**
+     * Gets Black's remaining time in milliseconds.
+     *
+     * @return Black's remaining time in milliseconds
+     */
+    public long getBlackTimeMs() {
+        return this.blackTimeMs;
+    }
+
+    /**
      * Checks if either player has run out of time.
      *
      * @return true if time is out for any player, false otherwise

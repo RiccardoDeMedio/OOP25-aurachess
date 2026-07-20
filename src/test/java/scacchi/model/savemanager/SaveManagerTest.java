@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 class SaveManagerTest {
     private static final String TEST_FILE_NAME = "test_save";
+    private static final int INITIAL_TIME_MS = 600_000;
     private SaveManagerImpl saveManagerImpl;
 
     @BeforeEach
@@ -52,7 +53,7 @@ class SaveManagerTest {
         final BoardImpl originalBoardImpl = new BoardImpl();
         final String originalFen = originalBoardImpl.toFEN();
 
-        saveManagerImpl.saveGame(TEST_FILE_NAME, originalBoardImpl);
+        saveManagerImpl.saveGame(TEST_FILE_NAME, originalBoardImpl, INITIAL_TIME_MS, INITIAL_TIME_MS);
 
         final BoardImpl loadedBoardImpl = new BoardImpl();
         saveManagerImpl.loadGame(TEST_FILE_NAME, loadedBoardImpl);
@@ -93,7 +94,7 @@ class SaveManagerTest {
         assertTrue(testBoardImpl.isEmpty(startPos), "La casella di partenza non si è svuotata");
         assertFalse(testBoardImpl.isEmpty(secondMove), "Il pezzo non ha fatto la seconda mossa");
 
-        saveManagerImpl.saveGame(TEST_FILE_NAME, testBoardImpl);
+        saveManagerImpl.saveGame(TEST_FILE_NAME, testBoardImpl, INITIAL_TIME_MS, INITIAL_TIME_MS);
         testBoardImpl.movePiece(secondMove, thirdMove);
         // Check if the piece has moved
         assertTrue(testBoardImpl.isEmpty(secondMove), "Il pezzo non si è spostato");
@@ -117,5 +118,25 @@ class SaveManagerTest {
         testBoardImpl.rollback();
         assertTrue(testBoardImpl.isEmpty(secondMove), "Il pezzo è ancora nella seconda mossa");
         assertFalse(testBoardImpl.isEmpty(startPos), "Il pezzo non è tornato nel punto di partenza");
+    }
+
+    /**
+     * Test 4: Verifies that custom timer values are correctly saved and loaded.
+     *
+     * @throws IOException if saving or loading fails
+     */
+    @Test
+    void testSaveAndLoadGameWithTimer() throws IOException {
+        final BoardImpl originalBoardImpl = new BoardImpl();
+        final long customWhiteTime = 123_456L;
+        final long customBlackTime = 654_321L;
+
+        saveManagerImpl.saveGame(TEST_FILE_NAME, originalBoardImpl, customWhiteTime, customBlackTime);
+
+        final BoardImpl loadedBoardImpl = new BoardImpl();
+        final long[] loadedTimes = saveManagerImpl.loadGame(TEST_FILE_NAME, loadedBoardImpl);
+
+        assertEquals(customWhiteTime, loadedTimes[0], "Il tempo residuo del Bianco non corrisponde.");
+        assertEquals(customBlackTime, loadedTimes[1], "Il tempo residuo del Nero non corrisponde.");
     }
 }

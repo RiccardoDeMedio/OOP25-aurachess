@@ -62,7 +62,6 @@ public final class Controller {
     private Position selectedSquare;
     private ChessView view;
     private AuraEngine engine;
-    private int currentDifficulty = 3; // Default difficulty level
     private ChessClock chessClock;
     private final Timer timer;
 
@@ -190,9 +189,6 @@ public final class Controller {
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(EI_EXPOSE_REP2_WARNING)
     public void setEngine(final AuraEngine engine) {
         this.engine = engine;
-        if (engine != null) {
-            this.currentDifficulty = engine.getDepth();
-        }
     }
 
     /**
@@ -322,17 +318,14 @@ public final class Controller {
 
         // If the user presses "Cancel" or closes the dialog, inputOpt is null.
         if (inputOpt.isPresent() && !inputOpt.get().isBlank()) {
-            String baseName = inputOpt.get().trim();
+            String fileName = inputOpt.get().trim();
 
             // Remove ".fen" if the user typed it out of habit
-            if (baseName.toLowerCase(Locale.ROOT).endsWith(".fen")) {
-                baseName = baseName.substring(0, baseName.length() - 4);
+            if (fileName.toLowerCase(Locale.ROOT).endsWith(".fen")) {
+                fileName = fileName.substring(0, fileName.length() - 4);
             }
 
             try {
-                // Final format: es "MyGame_Diff-3"
-                final String fileName = baseName + "_Diff-" + currentDifficulty;
-
                 saveGame(fileName);
                 view.showMessage("Partita salvata con successo come:\n" + fileName, SAVE_GAME_TITLE);
             } catch (final IOException e) {
@@ -550,7 +543,8 @@ public final class Controller {
      * @throws IOException in the event of clerical errors
      */
     public void saveGame(final String fileName) throws IOException {
-        saveManager.saveGame(fileName, boardImpl);
+        saveManager.saveGame(fileName, boardImpl,
+                chessClock.getWhiteTimeMs(), chessClock.getBlackTimeMs());
     }
 
     /**
@@ -560,18 +554,16 @@ public final class Controller {
      * @throws IOException in the event of reading errors
      */
     public void loadGame(final String fileName) throws IOException {
-        saveManager.loadGame(fileName, boardImpl);
+        final long[] savedTimes = saveManager.loadGame(fileName, boardImpl);
         clearSelection();
 
         // Collateral state reset
         trackedMoveLog.clear();
         precisionHistory.clear();
 
-        // Collateral state reset
-        trackedMoveLog.clear();
-
-        // Reset timers to initial values
+        // Reset timers to initial values BUT override with saved times
         this.chessClock = new ChessClock(INITIAL_TIME_MS, 0);
+        this.chessClock.setRemainingTimes(savedTimes[0], savedTimes[1]);
 
         // If the timer had been stopped by a previous checkmate or timeout, we restart it.
         if (this.timer != null && !this.timer.isRunning()) {

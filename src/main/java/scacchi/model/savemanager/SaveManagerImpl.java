@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -19,6 +20,7 @@ public final class SaveManagerImpl implements SaveManager {
     private static final String SAVES_SUBDIR = "saves";
     private static final String FEN_EXT = ".fen";
     private static final Pattern UNSAFE_CHARS = Pattern.compile("[^a-zA-Z0-9_-]");
+    private static final long DEFAULT_TIME_MS = 600_000L;
 
     /**
      * Helper method to get the absolute path to the saves folder
@@ -32,7 +34,8 @@ public final class SaveManagerImpl implements SaveManager {
     }
 
     @Override
-    public void saveGame(final String fileName, final Board board) throws IOException {
+    public void saveGame(final String fileName, final Board board,
+                         final long whiteTimeMs, final long blackTimeMs) throws IOException {
         final Path dirPath = getSavesDirectory();
 
         // Create the hidden folder ".aurascacchi" and the subfolder "saves" if they don't exist
@@ -41,18 +44,21 @@ public final class SaveManagerImpl implements SaveManager {
         }
 
         // We retrieve the list of FENs sorted from first to last
-        final List<String> historyList = board.getChronologicalHistory();
+        final List<String> dataToSave = new ArrayList<>(board.getChronologicalHistory());
+
+        // We add the White and Black time to the saving data
+        dataToSave.add("TIME:" + whiteTimeMs + ":" + blackTimeMs);
 
         // We sanitize the fileName from unwanted character
         final String sanitizeFileName = sanitizeFileName(fileName);
 
         // We write all the lines in the .fen file
         final Path filePath = dirPath.resolve(sanitizeFileName + FEN_EXT);
-        Files.write(filePath, historyList);
+        Files.write(filePath, dataToSave);
     }
 
     @Override
-    public void loadGame(final String fileName, final BoardImpl boardImpl) throws IOException {
+    public long[] loadGame(final String fileName, final BoardImpl boardImpl) throws IOException {
         final Path dirPath = getSavesDirectory();
         final String sanitizeFileName = sanitizeFileName(fileName);
         final Path filePath = dirPath.resolve(sanitizeFileName + FEN_EXT);
@@ -62,10 +68,34 @@ public final class SaveManagerImpl implements SaveManager {
             throw new IOException("Salvataggio non trovato in: " + filePath.toAbsolutePath());
         }
 
-        final List<String> lines = Files.readAllLines(filePath);
+        final List<String> lines = new ArrayList<>(Files.readAllLines(filePath));
+
+        long whiteTimeMs = DEFAULT_TIME_MS;
+        long blackTimeMs = DEFAULT_TIME_MS;
+
+        if (!lines.isEmpty()) {
+            final int lastIndex = lines.size() - 1;
+            final String lastLine = lines.get(lastIndex);
+
+            if (lastLine.startsWith("TIME:")) {
+                final String[] split = lastLine.split(":");
+                if (split.length == 3) {
+                    try {
+                        whiteTimeMs = Long.parseLong(split[1]);
+                        blackTimeMs = Long.parseLong(split[2]);
+                    } catch (final NumberFormatException e) {
+                        // If there is an error, we will use the default timings.
+                        whiteTimeMs = DEFAULT_TIME_MS;
+                    }
+                }
+                // We are removing the line to avoid breaking the chessboard loading process.
+                lines.remove(lastIndex);
+            }
+        }
 
         // We pass the lines to the board to make the stack and restore the present board
         boardImpl.loadFullGame(lines);
+        return new long[]{whiteTimeMs, blackTimeMs};
     }
 
     @Override
