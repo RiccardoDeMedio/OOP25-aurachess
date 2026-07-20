@@ -15,11 +15,7 @@ import scacchi.model.board.Position;
 import scacchi.model.pieces.PieceColor;
 
 /**
- * Test unitari per {@link GameRules}.
- *
- * <p>Ogni test costruisce uno scenario specifico caricando una stringa FEN
- * su un {@link BoardImpl} reale (nessun mock necessario, dato che GameRules
- * lavora solo su {@code ReadOnlyBoard}).</p>
+ * Tests for GameRules.
  */
 class GameRulesTest {
 
@@ -33,7 +29,7 @@ class GameRulesTest {
         boardImpl = new BoardImpl();
     }
 
-    // --- Conversioni algebriche -------------------------------------------------
+    // Algebraic conversions
 
     @Test
     void algebraicToPositionAndBackAreConsistent() {
@@ -50,7 +46,7 @@ class GameRulesTest {
         assertTrue(GameRules.algebraicToPosition("e").isEmpty());
     }
 
-    // --- Mosse legali di base -----------------------------------------------
+    // Legal moves
 
     @Test
     void legalMovesPawnAtStartHasSingleAndDoubleStep() {
@@ -67,12 +63,12 @@ class GameRulesTest {
     @Test
     void legalMovesEmptySquareReturnsEmptySet() {
         boardImpl.loadFromFEN(STANDARD_START_FEN);
-        final Position emptySquare = new Position(4, 4); // e5, vuota all'inizio
+        final Position emptySquare = new Position(4, 4); // e5, empty at the start
 
         assertTrue(GameRules.getLegalMoves(emptySquare, boardImpl).isEmpty());
     }
 
-    // --- Promozione ----------------------------------------------------------
+    // Promotion
 
     @Test
     void isPromotionPawnOnLastRankTrue() {
@@ -106,12 +102,12 @@ class GameRulesTest {
         assertEquals('n', GameRules.sanitizePromotionChoice('N', PieceColor.BLACK));
     }
 
-    // --- En passant ------------------------------------------------------------
+    // En Passant
 
     @Test
     void isEnPassantCaptureValidScenarioTrue() {
-        // Pedone bianco in d5, pedone nero appena spinto in e5 (doppio passo da e7),
-        // target en passant e6.
+        // White pawn on d5, black pawn just pushed to e5 (double step from e7),
+        // en passant target e6.
         boardImpl.loadFromFEN("4k3/8/8/3Pp3/8/8/8/4K3 w - e6 0 1");
         final Position d5 = new Position(3, 4);
         final Position e6 = new Position(4, 5);
@@ -127,7 +123,7 @@ class GameRulesTest {
         assertEquals(new Position(4, 4), captured); // e5
     }
 
-    // --- Arrocco ---------------------------------------------------------------
+    // Castling
 
     @Test
     void canCastleKingsideFreeBridgeTrue() {
@@ -139,7 +135,7 @@ class GameRulesTest {
 
     @Test
     void canCastleKingsideBlockedBridgeFalse() {
-        // Alfiere bianco su f1 blocca il ponte per l'arrocco corto.
+        // White bishop on f1 blocks the kingside castling bridge.
         boardImpl.loadFromFEN("4k3/8/8/8/8/8/8/R3KB1R w KQ - 0 1");
 
         assertFalse(GameRules.canCastleKingside(PieceColor.WHITE, boardImpl));
@@ -154,12 +150,12 @@ class GameRulesTest {
         assertFalse(GameRules.canCastleQueenside(PieceColor.WHITE, boardImpl));
     }
 
-    // --- Scacco / matto / stallo -------------------------------------------
+    // Check, checkmate, and stalemate
 
     @Test
     void isKingInCheckAndIsCheckmateBackRankMate() {
-        // Torre bianca su b8, re nero su g8 con i pedoni f7/g7/h7 che gli
-        // bloccano la fuga: scacco matto sulla traversa.
+        // White rook on b8, black king on g8 with pawns f7/g7/h7
+        // blocking its escape: back-rank checkmate.
         boardImpl.loadFromFEN("1R4k1/5ppp/8/8/8/8/8/4K3 b - - 0 1");
 
         assertTrue(GameRules.isKingInCheck(PieceColor.BLACK, boardImpl));
@@ -170,8 +166,8 @@ class GameRulesTest {
 
     @Test
     void isStalemateClassicPositionTrue() {
-        // Re nero in a8, donna bianca in b6, re bianco in c6: il nero non è
-        // sotto scacco ma non ha mosse legali.
+        // Black king on a8, white queen on b6, white king on c6: black is not
+        // in check but has no legal moves.
         boardImpl.loadFromFEN("k7/8/1QK5/8/8/8/8/8 b - - 0 1");
 
         assertFalse(GameRules.isKingInCheck(PieceColor.BLACK, boardImpl));
@@ -186,7 +182,7 @@ class GameRulesTest {
         assertFalse(GameRules.hasNoLegalMove(PieceColor.WHITE, boardImpl));
     }
 
-    // --- Regole di patta ---------------------------------------------------
+    // Draw rules
 
     @Test
     void isFiftyMoveRuleAtLimitTrue() {
@@ -214,8 +210,8 @@ class GameRulesTest {
 
     @Test
     void isThreefoldRepetitionRepeatedKnightShuffleTrue() {
-        // Solo cavallo bianco che va avanti e indietro g1-f3-g1-f3-g1:
-        // la posizione iniziale (cavallo in g1) si ripete 3 volte.
+        // Only white knight moving back and forth g1-f3-g1-f3-g1:
+        // the initial position (knight on g1) repeats 3 times.
         boardImpl.loadFromFEN("4k3/8/8/8/8/8/8/4KN2 w - - 0 1");
         final Position g1 = new Position(6, 0);
         final Position f3 = new Position(5, 2);
@@ -239,15 +235,13 @@ class GameRulesTest {
         assertFalse(GameRules.isThreefoldRepetition(boardImpl));
     }
 
-    // --- Mossa che lascerebbe il re sotto scacco (pin) ----------------------
-
     @Test
     void isMoveSafeForKingPinnedPieceFalse() {
-        // Alfiere nero in a5 inchioda il cavallo bianco in d2 al re in e1
-        // lungo la diagonale a5-e1.
+        // Black bishop on a5 pins the white knight on d2 to the king on e1
+        // along the a5-e1 diagonal.
         boardImpl.loadFromFEN("4k3/8/8/b7/8/8/3N4/4K3 w - - 0 1");
         final Position d2 = new Position(3, 1);
-        final Position b1 = new Position(1, 0); // mossa pseudo-legale del cavallo
+        final Position b1 = new Position(1, 0); // pseudo-legal move of the knight
 
         assertFalse(GameRules.isMoveSafeForKing(d2, b1, null, boardImpl));
         assertFalse(GameRules.getLegalMoves(d2, boardImpl).contains(b1));
