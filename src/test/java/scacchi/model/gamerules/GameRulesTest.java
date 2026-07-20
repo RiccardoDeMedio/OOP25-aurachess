@@ -15,7 +15,7 @@ import scacchi.model.board.Position;
 import scacchi.model.pieces.PieceColor;
 
 /**
- * Tests for GameRules
+ * Tests for GameRules.
  */
 class GameRulesTest {
 
