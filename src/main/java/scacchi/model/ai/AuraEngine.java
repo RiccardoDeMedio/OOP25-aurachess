@@ -510,7 +510,7 @@ public class AuraEngine {
      * @param piece indicates which piece is in that position.
      * @param position indicates the square on the board.
      */
-    public record PlacedPiece(Piece piece, Position position) { }
+    private record PlacedPiece(Piece piece, Position position) { }
 
     /**
      * Record for a move with the starting position and final position.
@@ -534,7 +534,7 @@ public class AuraEngine {
      * @param rookStartPosition the position of the rook before it has been moved.
      * @param rookFinalPosition the position of the rook after it has been moved.
      */
-    public record UndoInfo(
+    private record UndoInfo(
         Position startPosition,
         Position finalPosition,
         Piece movingPiece,
