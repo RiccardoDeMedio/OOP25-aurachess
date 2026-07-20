@@ -688,8 +688,8 @@ public final class Controller {
      * It validates and executes a move, handling special moves (castling, *en passant* capture, promotion)
      * and directly updating board data.
      *
-     * @param from            the starting position of the piece
-     * @param to              the destination position of the piece
+     * @param from the starting position of the piece
+     * @param to the destination position of the piece
      * @param promotionChoice the character representing the promotion piece if applicable
      * @return the outcome of the executed move
      */
